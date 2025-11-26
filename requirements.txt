@@ -4,4 +4,5 @@ plotly
 fpdf
 streamlit-option-menu
 pydantic
-xlsxwritter
+XlsxWriter
+
