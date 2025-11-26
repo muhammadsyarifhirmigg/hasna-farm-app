@@ -30,51 +30,97 @@ def get_img_as_base64(file):
         return ""
 
 def inject_login_css():
+
     img = get_img_as_base64("background.jpg")
+
     if img:
+
         bg_url = f"data:image/jpeg;base64,{img}"
+
     else:
+
         bg_url = "https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80"
 
+
+
     st.markdown(f"""
+
         <style>
+
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
         html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; color: #1f2937; }}
+
         .stApp {{
+
             background-image: url("{bg_url}");
+
             background-size: cover;
+
             background-position: center;
+
             background-repeat: no-repeat;
+
             background-attachment: fixed;
+
         }}
+
         .stApp::before {{
+
             content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+
             background-color: rgba(0, 0, 0, 0.2); z-index: -1;
+
         }}
+
         header[data-testid="stHeader"] {{ display: none; }}
+
         .block-container {{ padding-top: 4rem !important; max-width: 1000px; }}
+
         .brand-box {{
+
             background-color: rgba(255, 255, 255, 0.85);
+
             backdrop-filter: blur(10px);
+
             padding: 40px; border-radius: 24px; text-align: center;
+
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+
             border: 1px solid rgba(255, 255, 255, 0.18);
+
             display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;
+
         }}
+
         .brand-logo-img {{ width: 150px; display: block; margin-bottom: 15px; }}
+
         .brand-subtitle {{ color: #3B2417; font-size: 1.4rem; font-weight: 800; margin: 0; }}
+
         .brand-desc {{ color: #3B2417; font-size: 1rem; margin-top: 10px; font-weight: 500; }}
+
         div[data-testid="stForm"] {{
+
             background-color: #ffffff; border: none; border-radius: 24px;
+
             padding: 40px; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+
         }}
+
         input {{ border-radius: 8px !important; padding: 14px 16px !important; border: 1px solid #ddd !important; }}
+
         button[kind="primary"] {{
+
             background-color: #768209; color: white; border-radius: 8px; border: none; font-weight: 700;
+
             font-size: 18px; width: 100%; padding: 12px; margin-top: 10px;
+
         }}
+
         button[kind="primary"]:hover {{ background-color: #5a6307; }}
+
         </style>
+
     """, unsafe_allow_html=True)
 
 def inject_main_css():
@@ -235,70 +281,14 @@ class DatabaseManager:
             
             if not c.execute("SELECT * FROM inventory").fetchone():
                 real_inv = [
-                    ("PKN-MERAH", "Pakan Kukila Merah", "Pakan", "Sak", 10, 5),
-                    ("PKN-BIRU", "Pakan Kukila Biru", "Pakan", "Sak", 10, 5),
-                    ("TELUR", "Telur Puyuh", "Produk", "Dus", 100, 10),
-                    ("PUPUK", "Pupuk Organik (Kotoran)", "Produk", "Sak", 50, 5),
-                    ("VIT-OBAT", "Vitamin & Obat", "Obat", "Paket", 10, 2)
+                    ("PKN-MERAH", "Pakan Kukila Merah", "Pakan", "Sak", 0, 5),
+                    ("PKN-BIRU", "Pakan Kukila Biru", "Pakan", "Sak", 0, 5),
+                    ("TELUR", "Telur Puyuh", "Produk", "Dus", 0, 10),
+                    ("PUPUK", "Pupuk Organik (Kotoran)", "Produk", "Sak", 0, 5),
+                    ("VIT-OBAT", "Vitamin & Obat", "Obat", "Paket", 0, 2)
                 ]
                 c.executemany("INSERT INTO inventory (kode_barang, nama_barang, kategori, satuan, stok_saat_ini, min_stok) VALUES (?,?,?,?,?,?)", real_inv)
-
-            if not c.execute("SELECT * FROM jurnal").fetchone():
-                sa_date = "2025-10-01"
-                saldo_awal = [
-                    ("Kas", "Modal Pemilik", 20000000), ("Piutang Dagang", "Modal Pemilik", 1000000),
-                    ("Persediaan Telur Puyuh", "Modal Pemilik", 6250000), ("Persediaan Kotoran (Pupuk)", "Modal Pemilik", 150000),
-                    ("Persediaan Pakan Ternak", "Modal Pemilik", 2500000), ("Persediaan Obat & Vitamin", "Modal Pemilik", 300000),
-                    ("Bangunan Kandang", "Modal Pemilik", 30000000), ("Kendaraan", "Modal Pemilik", 140000000),
-                    ("Modal Pemilik", "Akumulasi Penyusutan Kandang", 3000000), ("Modal Pemilik", "Akumulasi Penyusutan Kendaraan", 14000000)
-                ]
-                for d, k, n in saldo_awal:
-                    c.execute("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (sa_date, "Saldo Awal Neraca", d, k, n, "system"))
-
-                trx_list = [
-                    ("2025-10-01", "Tambahan Modal Pemilik", "Kas", "Modal Pemilik", 5000000),
-                    ("2025-10-02", "Beli Pakan Kukila", "Persediaan Pakan Ternak", "Kas", 2460000),
-                    ("2025-10-05", "Jual Telur (3 Dus)", "Kas", "Penjualan Telur Puyuh", 750000),
-                    ("2025-10-05", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 300000),
-                    ("2025-10-05", "Beli Vitamin", "Persediaan Obat & Vitamin", "Kas", 250000),
-                    ("2025-10-06", "Jual Telur (Kredit)", "Piutang Dagang", "Penjualan Telur Puyuh", 500000),
-                    ("2025-10-06", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 200000),
-                    ("2025-10-08", "Jual Pupuk", "Kas", "Penjualan Kotoran (Pupuk)", 15000),
-                    ("2025-10-08", "HPP Pupuk", "HPP Kotoran (Pupuk)", "Persediaan Kotoran (Pupuk)", 6000),
-                    ("2025-10-08", "Jual Telur (1 Dus)", "Kas", "Penjualan Telur Puyuh", 250000),
-                    ("2025-10-08", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 100000),
-                    ("2025-10-10", "Beli Bensin", "Beban Transportasi", "Kas", 100000),
-                    ("2025-10-11", "Jual Telur (4 Dus)", "Kas", "Penjualan Telur Puyuh", 1000000),
-                    ("2025-10-11", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 400000),
-                    ("2025-10-12", "Jual Pupuk (2 Sak)", "Kas", "Penjualan Kotoran (Pupuk)", 30000),
-                    ("2025-10-12", "HPP Pupuk", "HPP Kotoran (Pupuk)", "Persediaan Kotoran (Pupuk)", 12000),
-                    ("2025-10-14", "Jual Telur (4 Dus)", "Kas", "Penjualan Telur Puyuh", 1000000),
-                    ("2025-10-14", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 400000),
-                    ("2025-10-15", "Jual Pupuk", "Kas", "Penjualan Kotoran (Pupuk)", 30000),
-                    ("2025-10-15", "HPP Pupuk", "HPP Kotoran (Pupuk)", "Persediaan Kotoran (Pupuk)", 12000),
-                    ("2025-10-19", "Jual Telur (3 Dus)", "Kas", "Penjualan Telur Puyuh", 750000),
-                    ("2025-10-19", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 300000),
-                    ("2025-10-20", "Jual Telur (2 Dus)", "Kas", "Penjualan Telur Puyuh", 500000),
-                    ("2025-10-20", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 200000),
-                    ("2025-10-21", "Retur Penjualan", "Return Penjualan", "Kas", 300000),
-                    ("2025-10-21", "Retur Stok", "Persediaan Telur Puyuh", "HPP Telur Puyuh", 120000),
-                    ("2025-10-22", "Jual Telur (2 Dus)", "Kas", "Penjualan Telur Puyuh", 500000),
-                    ("2025-10-22", "Jual Pupuk (3 Sak)", "Kas", "Penjualan Kotoran (Pupuk)", 45000),
-                    ("2025-10-22", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 200000),
-                    ("2025-10-22", "HPP Pupuk", "HPP Kotoran (Pupuk)", "Persediaan Kotoran (Pupuk)", 18000),
-                    ("2025-10-25", "Prive Pemilik", "Prive", "Kas", 4000000),
-                    ("2025-10-26", "Pelunasan Piutang", "Kas", "Piutang Dagang", 500000),
-                    ("2025-10-27", "Beli Pakan", "Persediaan Pakan Ternak", "Kas", 360000),
-                    ("2025-10-28", "Jual Telur", "Kas", "Penjualan Telur Puyuh", 500000),
-                    ("2025-10-28", "HPP Jual Telur", "HPP Telur Puyuh", "Persediaan Telur Puyuh", 200000),
-                    ("2025-10-30", "Bayar Listrik", "Beban Listrik, Air, dan Telepon", "Kas", 300000),
-                    ("2025-10-31", "Penyusutan Kandang Okt", "Beban Penyusutan Kandang", "Akumulasi Penyusutan Kandang", 450000),
-                    ("2025-10-31", "Penyusutan Kendaraan Okt", "Beban Penyusutan Kendaraan", "Akumulasi Penyusutan Kendaraan", 1239583),
-                    ("2025-10-31", "Pemakaian Pakan (Costing)", "Beban Pakan", "Persediaan Pakan Ternak", 732000),
-                    ("2025-10-31", "Pemakaian Obat & Vitamin", "Beban Obat & Vitamin", "Persediaan Obat & Vitamin", 1414583),
-                ]
-                for tgl, desc, d, k, n in trx_list:
-                    c.execute("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, desc, d, k, n, "system"))
+            
             c.commit()
 
     def run_query(self, q, p=()):
@@ -422,6 +412,42 @@ if 'role' not in st.session_state:
 @login_required
 def page_dashboard():
     st.title("Dashboard Overview")
+    
+   
+    st.markdown("""
+    <style>
+        .info-box {
+            background-color: #f4f6e6;      /* Warna Latar: Krem Kehijauan (sesuai tema) */
+            border-left: 6px solid #768209; /* Garis Kiri: Hijau Tua (Logo) */
+            padding: 20px;
+            border-radius: 10px;
+            color: #2c3e50;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .info-box ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+        .info-box li {
+            margin-bottom: 5px;
+        }
+    </style>
+    
+    <div class="info-box">
+        <strong>Halaman ini berfungsi sebagai pusat kendali utama untuk memantau performa bisnis Hasna Farm secara Real-Time.</strong>
+        <br><br>
+        <strong>Di sini Anda dapat melihat:</strong>
+        <ul>
+            <li>🤖 <b>AI Insights:</b> Analisis cerdas otomatis mengenai kondisi likuiditas kas dan pos pengeluaran terbesar.</li>
+            <li>📊 <b>Key Metrics:</b> Ringkasan cepat Total Pendapatan, Pengeluaran, Net Profit, dan Peringatan Stok Menipis.</li>
+            <li>📈 <b>Grafik Tren:</b> Visualisasi pergerakan Arus Kas (Pemasukan vs Pengeluaran) dan Tren Profitabilitas antar periode.</li>
+            <li>🍕 <b>Komposisi Beban:</b> Persentase alokasi biaya operasional untuk membantu efisiensi anggaran.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+    # -------------------------------------------------------------
+
     df = db.get_df("SELECT * FROM jurnal ORDER BY tanggal ASC")
     if not df.empty:
         df['tanggal_dt'] = pd.to_datetime(df['tanggal'])
@@ -449,10 +475,14 @@ def page_dashboard():
     low_stock = len(db.get_df("SELECT * FROM inventory WHERE stok_saat_ini <= min_stok"))
 
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Revenue", f"Rp {rev/1000000:.1f} M")
-    c2.metric("Total Expense", f"Rp {exp/1000000:.1f} M")
-    c3.metric("Net Profit", f"Rp {laba/1000000:.1f} M")
-    c4.metric("Stock Alert", f"{low_stock} Items", delta="Warning" if low_stock>0 else "OK", delta_color="inverse")
+    val_rev = f"Rp {rev/1000000:.1f} Jt".replace('.', ',')
+    val_exp = f"Rp {exp/1000000:.1f} Jt".replace('.', ',')
+    val_laba = f"Rp {laba/1000000:.1f} Jt".replace('.', ',')
+    
+    c1.metric("Total Pendapatan", val_rev)
+    c2.metric("Total Pengeluaran", val_exp)
+    c3.metric("Laba Bersih", val_laba)
+    c4.metric("Peringatan Stok", f"{low_stock} Barang", delta="Perhatian" if low_stock>0 else "Aman", delta_color="inverse")
 
     st.markdown("<br>", unsafe_allow_html=True)
     c_title, c_filter = st.columns([3, 1])
@@ -514,421 +544,985 @@ def page_dashboard():
 
 @login_required
 def page_inventory():
-    st.title("📦 Inventory Management")
-    items_df = db.get_df("SELECT kode_barang, nama_barang, stok_saat_ini, min_stok, satuan FROM inventory ORDER BY nama_barang")
-    tab_titles = ["📝 Input & Master"] + ([f"📦 {row['nama_barang']}" for _, row in items_df.iterrows()] if not items_df.empty else [])
-    tabs = st.tabs(tab_titles)
+    st.title("📦 Inventory Monitoring")
     
-    with tabs[0]:
-        c_a, c_b = st.columns([1,1])
+    
+    st.markdown("""
+    <style>
+        .stock-card {
+            background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;
+            padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stock-card:hover {
+            transform: translateY(-5px); box-shadow: 0 10px 15px rgba(118, 130, 9, 0.15); border-color: #768209;
+        }
+        .card-title { font-size: 16px; font-weight: 700; color: #1f2937; margin-bottom: 5px; }
+        .card-category { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stock-val { font-size: 24px; font-weight: 800; color: #768209; }
+        .stock-unit { font-size: 14px; color: #6b7280; font-weight: 500; }
+        .progress-bg { background-color: #f3f4f6; height: 8px; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease-in-out; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; float: right; }
+        .badge-safe { background-color: #dcfce7; color: #166534; }
+        .badge-low { background-color: #fee2e2; color: #991b1b; }
         
-        with c_a:
-            st.subheader("🆕 Register New Item")
-            with st.form("new_itm"):
-                kd = st.text_input("Kode Barang (e.g. PKN-01)")
-                nm = st.text_input("Nama Barang")
-                c1, c2 = st.columns(2)
-                cat = c1.selectbox("Kategori", ["Pakan","Obat","Produk","Lainnya"])
-                sat = c2.text_input("Satuan", "Pcs")
-                min_s = st.number_input("Min. Stok Alert", 10)
-                if st.form_submit_button("Simpan", type="primary"):
-                    if db.run_query("INSERT INTO inventory (kode_barang, nama_barang, kategori, satuan, min_stok) VALUES (?,?,?,?,?)", (kd, nm, cat, sat, min_s)):
-                        st.success("Item Created!")
-                        time.sleep(0.5)
-                        st.rerun()
-                    else:
-                        st.error("Kode sudah ada!")
+        /* Tabel Transparan */
+        .custom-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: #374151; background-color: transparent !important; }
+        .custom-table thead tr:first-child th { background-color: #768209; color: white; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 8px; border-radius: 6px 6px 0 0; }
+        .custom-table thead tr:last-child th { border-bottom: 2px solid #768209; font-size: 12px; color: #768209; font-weight: 700; padding: 10px 8px; text-align: right; }
+        .custom-table thead tr:last-child th:nth-child(1), .custom-table thead tr:last-child th:nth-child(2) { text-align: left; }
+        .custom-table tbody tr { background-color: transparent !important; border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .custom-table tbody tr:hover { background-color: rgba(118, 130, 9, 0.05) !important; }
+        .custom-table td { padding: 12px 8px; font-size: 13.5px; text-align: right; }
+        .custom-table td:nth-child(1) { text-align: left; white-space: nowrap; font-weight: 600; color: #555; }
+        .custom-table td:nth-child(2) { text-align: left; color: #1f2937; }
+        .val-in { color: #15803d; font-weight: 700; background-color: rgba(22, 163, 74, 0.05); border-radius: 4px; padding: 2px 6px; }
+        .val-out { color: #b91c1c; font-weight: 700; background-color: rgba(220, 38, 38, 0.05); border-radius: 4px; padding: 2px 6px; }
+        .val-bal { font-weight: 800; color: #374151; }
         
-        with c_b:
-            st.subheader("📝 Stock Transaction")
-            with st.form("stock_entry"):
-                c1, c2 = st.columns(2)
-                tgl = c1.date_input("Tanggal", date.today())
-                item_opts = [f"{r['kode_barang']} | {r['nama_barang']} (Sisa: {r['stok_saat_ini']})" for _, r in items_df.iterrows()]
-                sel_item = c2.selectbox("Pilih Barang", item_opts)
-                c3, c4, c5 = st.columns(3)
-                act = c3.radio("Aksi", ["IN", "OUT"])
-                qty = c4.number_input("Qty", min_value=0.1)
-                prc = c5.number_input("Harga @", min_value=0.0, step=1000.0)
-                note = st.text_input("Ket")
-                st.markdown("---")
-                auto_jurnal = st.checkbox("Auto Jurnal?", value=True)
-                aset = db.get_acc_by_type(['Aset'])
-                beban = db.get_acc_by_type(['Beban'])
-                if auto_jurnal:
-                    j1, j2 = st.columns(2)
-                    if act=="IN":
-                        jd=j1.selectbox("Db (Aset)", aset)
-                        jk=j2.selectbox("Cr (Kas)", aset)
-                    else:
-                        jd=j1.selectbox("Db (Beban/HPP)", beban)
-                        jk=j2.selectbox("Cr (Persediaan)", aset)
-                if st.form_submit_button("Simpan Transaksi", type="primary"):
-                    if not item_opts:
-                        st.error("Barang Kosong")
-                        st.stop()
-                    code = sel_item.split(" | ")[0]
-                    curr = db.get_one("SELECT stok_saat_ini FROM inventory WHERE kode_barang=?", (code,))[0]
-                    if act=="OUT" and curr<qty:
-                        st.error("Stok Kurang")
-                    else:
-                        op = "+" if act=="IN" else "-"
-                        db.run_query(f"UPDATE inventory SET stok_saat_ini=stok_saat_ini{op}? WHERE kode_barang=?", (qty,code))
-                        db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", (tgl,code,act,qty,prc,note,st.session_state['username']))
-                        if auto_jurnal and prc>0:
-                            db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, f"STOK {code}: {note}", jd, jk, qty*prc, "SYS"))
-                        st.success("Saved!")
-                        time.sleep(0.5)
-                        st.rerun()
-            
-            logs_df = db.get_df("SELECT * FROM stock_log ORDER BY id DESC LIMIT 20")
-            if not logs_df.empty:
-                with st.expander("🔧 Hapus Riwayat Stok"):
-                    l_opt = logs_df.apply(lambda x: f"ID:{x['id']} | {x['kode_barang']} {x['jenis_gerak']} {x['jumlah']}", axis=1)
-                    s_log = st.selectbox("Pilih Log:", l_opt)
-                    if st.button("🗑️ Hapus & Reverse Stok", type="primary"):
-                        lid = int(s_log.split(" |")[0].replace("ID:", ""))
-                        ld = db.get_one("SELECT * FROM stock_log WHERE id=?", (lid,))
-                        rev_op = "-" if ld['jenis_gerak']=="IN" else "+"
-                        db.run_query(f"UPDATE inventory SET stok_saat_ini=stok_saat_ini{rev_op}? WHERE kode_barang=?", (ld['jumlah'], ld['kode_barang']))
-                        db.run_query("DELETE FROM stock_log WHERE id=?", (lid,))
-                        st.success("Reversed!")
-                        time.sleep(0.5)
-                        st.rerun()
+        .info-box { background-color: #f4f6e6; border-left: 6px solid #768209; padding: 20px; border-radius: 10px; color: #2c3e50; margin-bottom: 25px; }
+        .info-box ul { margin-bottom: 0; padding-left: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
 
-    for i, (_, row) in enumerate(items_df.iterrows()):
-        with tabs[i+1]:
-            st.markdown(f"### {row['nama_barang']}")
-            st.caption(f"Min: {row['min_stok']}")
-            df_c = db.get_inventory_card_df(row['kode_barang'])
-            if not df_c.empty: 
-                st.dataframe(df_c.style.set_properties(**{'text-align': 'right'}, subset=df_c.columns[2:]).set_table_styles([{'selector': 'th', 'props': [('text-align', 'center'), ('background-color', '#f0f2f6')]}]), use_container_width=True, height=500)
-            else:
-                st.info("No Tx")
+    
+    st.markdown("""
+    <div class="info-box">
+        <strong>Monitoring Stok Gudang Real-Time</strong>
+        <ul>
+            <li>📦 <b>Visualisasi Kartu:</b> Melihat ketersediaan barang dengan tampilan visual.</li>
+            <li>⚠️ <b>Indikator Warna:</b> Batang stok merah jika menipis.</li>
+        </ul>
+    </div>
+    """, unsafe_allow_html=True)
+
+    
+    df_inv = db.get_df("SELECT kode_barang, nama_barang, kategori, satuan, stok_saat_ini, min_stok FROM inventory ORDER BY nama_barang ASC")
+    if df_inv.empty:
+        st.info("Belum ada data barang."); return
+
+   
+    c_filter, c_metric = st.columns([1, 2])
+    with c_filter:
+        pilih_kat = st.selectbox("📂 Filter Kategori:", ["Semua"] + df_inv['kategori'].unique().tolist())
+    with c_metric:
+        low_stock = len(df_inv[df_inv['stok_saat_ini'] <= df_inv['min_stok']])
+        st.markdown(f"""<div style="padding-top:15px;"><b>Total SKU:</b> {len(df_inv)} | <span style="color:{'#d32f2f' if low_stock > 0 else '#768209'}"><b>Perlu Restock:</b> {low_stock}</span></div>""", unsafe_allow_html=True)
+    st.markdown("---")
+
+    
+    view_df = df_inv.copy()
+    if pilih_kat != "Semua": view_df = view_df[view_df['kategori'] == pilih_kat]
+
+    def get_icon(kat):
+        if "Pakan" in kat: return "🐔"
+        if "Obat" in kat: return "💊"
+        if "Telur" in kat or "Produk" in kat: return "🥚"
+        return "📦"
+
+    cols = st.columns(3)
+    for i, row in view_df.reset_index().iterrows():
+        is_low = row['stok_saat_ini'] <= row['min_stok']
+        color = "#ef4444" if is_low else "#768209"
+        bg_badge = "badge-low" if is_low else "badge-safe"
+        txt_badge = "PERLU RESTOCK" if is_low else "AMAN"
+        max_visual = row['min_stok'] * 4 if row['min_stok'] > 0 else 100
+        pct = min((row['stok_saat_ini'] / max_visual) * 100, 100)
+        
+        with cols[i % 3]:
+            st.markdown(f"""
+            <div class="stock-card">
+                <div style="display:flex; justify-content:space-between; align-items:start;">
+                    <div class="card-category">{get_icon(row['kategori'])} {row['kategori']}</div>
+                    <span class="badge {bg_badge}">{txt_badge}</span>
+                </div>
+                <div class="card-title">{row['nama_barang']}</div>
+                <div style="margin-top:10px;"><span class="stock-val">{row['stok_saat_ini']:,.0f}</span> <span class="stock-unit">{row['satuan']}</span></div>
+                <div class="progress-bg"><div class="progress-fill" style="width: {pct}%; background-color: {color};"></div></div>
+                <div style="font-size:11px; color:#9ca3af; margin-top:5px;">Min. Alert: {row['min_stok']} {row['satuan']}</div>
+            </div>""", unsafe_allow_html=True)
+            if st.button("📜 Riwayat", key=f"btn_{row['kode_barang']}", use_container_width=True):
+                st.session_state['active_item'] = row['kode_barang']
+                st.session_state['active_name'] = row['nama_barang']
+
+    
+    if 'active_item' in st.session_state:
+        st.markdown("---"); st.subheader(f"🔍 Riwayat: {st.session_state['active_name']}")
+        df_kartu = db.get_inventory_card_df(st.session_state['active_item'])
+        
+        if not df_kartu.empty:
+            table_html = """
+            <table class="custom-table">
+                <thead>
+                    <tr><th colspan="2" style="text-align:center">Info Transaksi</th><th colspan="3" style="text-align:center">🟢 Masuk (IN)</th><th colspan="3" style="text-align:center">🔴 Keluar (OUT)</th><th colspan="3" style="text-align:center">📦 Saldo Akhir</th></tr>
+                    <tr><th width="10%">Tanggal</th><th width="25%">Keterangan</th><th width="5%">Qty</th><th>Harga</th><th>Total</th><th width="5%">Qty</th><th>Harga</th><th>Total</th><th width="5%">Qty</th><th>Harga</th><th>Total</th></tr>
+                </thead><tbody>"""
+            
+            for _, row in df_kartu.iterrows():
+                desc = row.get(('Detail', 'Desc'), '')
+                if desc.strip() in ["Buy:", ""]: desc = '<span style="color:#9ca3af; font-style:italic;">(Pembelian Stok)</span>'
+                elif desc.strip() in ["Sold:", "Sell:"]: desc = '<span style="color:#9ca3af; font-style:italic;">(Penjualan Produk)</span>'
+                
+                table_html += f"""<tr>
+                    <td>{row.get(('Detail', 'Date'), '')}</td><td>{desc}</td>
+                    <td><span class="{'val-in' if row.get(('IN', 'Qty')) else ''}">{row.get(('IN', 'Qty'), '')}</span></td><td style="color:#666">{row.get(('IN', 'Price'), '')}</td><td style="color:#666">{row.get(('IN', 'Total'), '')}</td>
+                    <td><span class="{'val-out' if row.get(('OUT', 'Qty')) else ''}">{row.get(('OUT', 'Qty'), '')}</span></td><td style="color:#666">{row.get(('OUT', 'Price'), '')}</td><td style="color:#666">{row.get(('OUT', 'Total'), '')}</td>
+                    <td class="val-bal">{row.get(('Balance', 'Qty'), '')}</td><td>{row.get(('Balance', 'Price'), '')}</td><td>{row.get(('Balance', 'Total'), '')}</td>
+                </tr>"""
+            table_html += "</tbody></table>"
+            st.markdown(table_html, unsafe_allow_html=True)
+        else: st.info("Belum ada riwayat transaksi.")
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("Tutup Detail"): del st.session_state['active_item']; st.rerun()
 
 @login_required
 def page_jurnal():
-    st.title("Journal Entries")
-    curr_user = st.session_state['username']
-    kas = db.get_acc_by_type(['Aset'])
-    pdp = db.get_acc_by_type(['Pendapatan'])
-    bbn = db.get_acc_by_type(['Beban'])
-    all_acc = db.get_all_acc()
-    t1, t2, t3 = st.tabs(["🛒 Jual", "🛍️ Beli", "⚙️ Umum"])
+    st.title("💸 Financial Journal")
     
-    def post_trx(tgl, desc, d, c, qty, price, manual_total, tipe):
-        if qty > 0 and price > 0:
-            final_nominal = qty * price
-            full_desc = f"{desc} ({qty} x {price:,.0f})"
-        else:
-            final_nominal = manual_total
-            full_desc = desc
-        try:
-            dat = JurnalSchema(tanggal=tgl, deskripsi=full_desc, akun_debit=d, akun_kredit=c, nominal=final_nominal, created_by=curr_user)
-            if db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (dat.tanggal, dat.deskripsi, dat.akun_debit, dat.akun_kredit, dat.nominal, dat.created_by)):
-                log_activity(curr_user, "POST", f"{tipe}-{full_desc}")
-                st.success(f"✅ Berhasil! Total: Rp {final_nominal:,.0f}")
-                time.sleep(0.5)
-                st.rerun()
-        except ValidationError as e:
-            st.error(e.errors()[0]['msg'])
-            
+    
+    st.markdown("""
+    <style>
+        .stTabs [data-baseweb="tab-list"] { justify-content: center; width: 100%; }
+        .stTabs [data-baseweb="tab"] { height: 50px; white-space: pre-wrap; background-color: transparent; border-radius: 4px 4px 0px 0px; gap: 1px; padding-top: 10px; padding-bottom: 10px; flex: 1; }
+        div[data-baseweb="tab-highlight"] { background-color: #768209 !important; }
+        div[data-baseweb="tab-list"] button[aria-selected="true"] p { color: #768209 !important; font-weight: bold; }
+        button[kind="primary"] { background-color: #768209 !important; border-color: #768209 !important; color: white !important; transition: background-color 0.3s ease; }
+        button[kind="primary"]:hover { background-color: #5a6307 !important; border-color: #5a6307 !important; }
+        
+        .info-box { background-color: #f4f6e6; border-left: 6px solid #768209; padding: 20px; border-radius: 10px; color: #2c3e50; margin-bottom: 25px; }
+        .journal-table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; margin-top: 15px; color: #374151; }
+        .journal-table thead th { background-color: #768209; color: white; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding: 10px; text-align: left; }
+        .journal-table tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); transition: background-color 0.1s; }
+        .journal-table tbody tr:hover { background-color: rgba(118, 130, 9, 0.05); }
+        .journal-table td { padding: 10px; font-size: 14px; vertical-align: top; }
+        .acc-cr { padding-left: 30px !important; color: #4b5563; font-style: italic; }
+        .tag-db { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight:bold; }
+        .tag-cr { background-color: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight:bold; }
+        .money { font-family: 'Courier New', monospace; font-weight: 600; text-align: right; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""<div class="info-box"><strong>Pencatatan Transaksi Terintegrasi</strong><br>Sistem ini otomatis menghubungkan arus uang dengan stok fisik.<ul><li>💰 <b>Penjualan:</b> Stok berkurang otomatis, Pendapatan bertambah.</li><li>🛒 <b>Pembelian:</b> Stok bertambah otomatis, Kas berkurang.</li></ul></div>""", unsafe_allow_html=True)
+
+    
+    akun_kas = db.get_acc_by_type(['Aset'])
+    akun_pdp = db.get_acc_by_type(['Pendapatan'])
+    akun_bbn = db.get_acc_by_type(['Beban'])
+    all_acc = db.get_all_acc()
+    inv_df = db.get_df("SELECT kode_barang, nama_barang, stok_saat_ini FROM inventory")
+    inv_opts = {f"{r['nama_barang']} (Sisa: {r['stok_saat_ini']})": r['kode_barang'] for _, r in inv_df.iterrows()} if not inv_df.empty else {}
+    user_now = st.session_state['username']
+
+    
+    t1, t2, t3 = st.tabs(["💰 Penjualan", "🛒 Pembelian", "⚙️ Biaya Umum"])
+    
     with t1:
-        st.info("💡 Tips: Isi 'Qty' dan 'Harga' untuk hitung otomatis. Atau isi 'Total Manual' saja.")
-        with st.form("in"):
+        with st.form("jual"):
             c1, c2 = st.columns(2)
-            t = c1.date_input("Tgl", date.today())
-            d = c2.text_input("Ket")
-            c3, c4 = st.columns(2)
-            dk = c3.selectbox("Db", kas)
-            ck = c4.selectbox("Cr", pdp)
-            st.markdown("---")
-            k1, k2, k3 = st.columns([1,1,2])
-            q = k1.number_input("Q", 0.0)
-            p = k2.number_input("P", 0.0)
-            m = k3.number_input("Total Manual", 0.0)
-            if st.form_submit_button("Post", type="primary"):
-                post_trx(t, d, dk, ck, q, p, m, "IN")
+            tgl = c1.date_input("Tgl", date.today(), key="j_tgl")
+            brg = c2.selectbox("Produk", list(inv_opts.keys())) if inv_opts else None
+            c3, c4, c5 = st.columns(3)
+            qty = c3.number_input("Qty", 1.0, step=1.0, key="j_qty")
+            prc = c4.number_input("Harga", step=500.0, key="j_prc")
+            tot = qty * prc
+            c5.metric("Total", f"Rp {tot:,.0f}")
+            ket = st.text_input("Ket", placeholder="Pembeli...")
+            ca, cb = st.columns(2)
+            adb = ca.selectbox("Masuk Ke", akun_kas, key="j_db")
+            acr = cb.selectbox("Sumber", akun_pdp, key="j_cr")
+            if st.form_submit_button("Simpan Penjualan", type="primary"):
+                if brg:
+                    kd = inv_opts[brg]
+                    cur = inv_df[inv_df['kode_barang']==kd]['stok_saat_ini'].values[0]
+                    if qty > cur: st.error("Stok Kurang!"); st.stop()
+                    db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini-? WHERE kode_barang=?", (qty, kd))
+                    db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", (tgl, kd, "OUT", qty, prc, f"Sold: {ket}", user_now))
+                db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, f"JUAL {brg.split(' (')[0]}: {ket}", adb, acr, tot, user_now))
+                st.success("OK"); time.sleep(1); st.rerun()
+
     with t2:
-        st.info("💡 Tips: Isi 'Qty' dan 'Harga' untuk hitung otomatis.")
-        with st.form("out"):
+        with st.form("beli"):
             c1, c2 = st.columns(2)
-            t = c1.date_input("Tgl", key="o1")
-            d = c2.text_input("Ket", key="o2")
-            c3, c4 = st.columns(2)
-            dk = c3.selectbox("Db", bbn+kas)
-            ck = c4.selectbox("Cr", kas, key="o3")
-            st.markdown("---")
-            k1, k2, k3 = st.columns([1,1,2])
-            q = k1.number_input("Q", 0.0, key="oq")
-            p = k2.number_input("P", 0.0, key="op")
-            m = k3.number_input("Total Manual", 0.0, key="om")
-            if st.form_submit_button("Post", type="primary"):
-                post_trx(t, d, dk, ck, q, p, m, "OUT")
+            tgl = c1.date_input("Tgl", date.today(), key="b_tgl")
+            brg = c2.selectbox("Barang", list(inv_opts.keys())) if inv_opts else None
+            c3, c4, c5 = st.columns(3)
+            qty = c3.number_input("Qty", 1.0, step=1.0, key="b_qty")
+            tot = c4.number_input("Total Bayar", step=1000.0, key="b_tot")
+            c5.metric("Harga/Unit", f"Rp {tot/qty:,.0f}" if qty>0 else 0)
+            ket = st.text_input("Ket", placeholder="Toko...")
+            ca, cb = st.columns(2)
+            adb = ca.selectbox("Untuk", akun_bbn+akun_kas, key="b_db")
+            acr = cb.selectbox("Bayar Pakai", akun_kas, key="b_cr")
+            if st.form_submit_button("Simpan Pembelian", type="primary"):
+                if brg:
+                    kd = inv_opts[brg]
+                    db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini+? WHERE kode_barang=?", (qty, kd))
+                    db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", (tgl, kd, "IN", qty, (tot/qty if qty>0 else 0), f"Buy: {ket}", user_now))
+                db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, f"BELI {brg.split(' (')[0]}: {ket}", adb, acr, tot, user_now))
+                st.success("OK"); time.sleep(1); st.rerun()
+
     with t3:
-        with st.form("gen"):
+        with st.form("umum"):
             c1, c2 = st.columns(2)
-            t = c1.date_input("Tgl", key="g1")
-            d = c2.text_input("Ref", key="g2")
-            c3, c4 = st.columns(2)
-            dk = c3.selectbox("Db", all_acc, key="g3")
-            ck = c4.selectbox("Cr", all_acc, index=1, key="g4")
-            st.markdown("---")
-            k1, k2, k3 = st.columns([1, 1, 2])
-            q = k1.number_input("Q", 0.0, key="gq")
-            p = k2.number_input("P", 0.0, key="gp")
-            m = k3.number_input("Total Manual", 0.0, key="gm")
-            if st.form_submit_button("Post", type="primary"):
-                post_trx(t, d, dk, ck, q, p, m, "GEN")
+            tgl = c1.date_input("Tgl", date.today(), key="u_tgl")
+            desc = c2.text_input("Ket", placeholder="Biaya...")
+            c3, c4, c5 = st.columns([1,1,1])
+            adb = c3.selectbox("Debit", all_acc, key="u_db")
+            acr = c4.selectbox("Kredit", all_acc, index=1, key="u_cr")
+            nom = c5.number_input("Rp", step=1000.0, key="u_nom")
+            if st.form_submit_button("Simpan", type="primary"):
+                db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, desc, adb, acr, nom, user_now))
+                st.success("OK"); time.sleep(1); st.rerun()
+
+   
     st.markdown("---")
     
-    col_header, col_filter = st.columns([2, 1])
-    with col_header:
-        st.subheader("📋 Buku Jurnal Umum")
-    with col_filter:
-        f_mode = st.selectbox("Filter Kategori:", ["Semua", "🛒 Penjualan", "🛍️ Pembelian", "⚙️ Umum"])
+    
+    c_title, c_filt, c_down = st.columns([2, 1.5, 1])
+    with c_title:
+        st.subheader("📜 Riwayat Jurnal")
+    with c_filt:
+        f_mode = st.selectbox("Filter Kategori:", ["Semua", "💰 Penjualan", "🛒 Pembelian", "⚙️ Umum"], label_visibility="collapsed")
+    
+    
+    query = "SELECT * FROM jurnal"
+    if f_mode == "💰 Penjualan":
+        query += " WHERE deskripsi LIKE 'JUAL%' OR akun_kredit LIKE '%Pendapatan%'"
+    elif f_mode == "🛒 Pembelian":
+        query += " WHERE deskripsi LIKE 'BELI%' OR akun_debit LIKE '%Beban%'"
+    elif f_mode == "⚙️ Umum":
+        query += " WHERE deskripsi NOT LIKE 'JUAL%' AND deskripsi NOT LIKE 'BELI%'"
+    
+    query += " ORDER BY tanggal DESC, id DESC LIMIT 50" 
+    
+    df_j = db.get_df(query)
+
+    with c_down:
         
-    df = db.get_df("SELECT * FROM jurnal ORDER BY id DESC")
-    if not df.empty:
-        if f_mode == "🛒 Penjualan":
-            df = df[df['deskripsi'].str.contains("PENJUALAN", case=False) | df['akun_kredit'].isin(pdp)]
-        elif f_mode == "🛍️ Pembelian":
-            df = df[df['deskripsi'].str.contains("PEMBELIAN", case=False) | df['akun_debit'].isin(bbn)]
-        elif f_mode == "⚙️ Umum":
-            df = df[~df['deskripsi'].str.contains("PENJUALAN|PEMBELIAN", case=False)]
-        if not df.empty:
-            view=[]
-            for _,r in df.iterrows():
-                view.append({"Tanggal":r['tanggal'],"Keterangan":r['akun_debit'],"Ref":"Db","Debit":r['nominal'],"Kredit":0,"Detail":r['deskripsi']})
-                view.append({"Tanggal":"","Keterangan":f"      {r['akun_kredit']}","Ref":"Cr","Debit":0,"Kredit":r['nominal'],"Detail":""})
-            df_view = pd.DataFrame(view)
-            st.dataframe(df_view, column_config={"Tanggal": st.column_config.TextColumn("Tanggal", width="small"), "Keterangan": st.column_config.TextColumn("Nama Akun", width="large"), "Ref": st.column_config.TextColumn("Ref", width="small"), "Debit": st.column_config.NumberColumn("Debit", format="Rp %.0f"), "Kredit": st.column_config.NumberColumn("Kredit", format="Rp %.0f"), "Detail": st.column_config.TextColumn("Keterangan Transaksi", width="medium")}, use_container_width=True, hide_index=True, height=500)
-            st.markdown("---")
-            c1, c2 = st.columns([1,1])
-            with c1:
-                b=io.BytesIO()
-                with pd.ExcelWriter(b, engine='xlsxwriter') as w: df.to_excel(w, index=False)
-                st.download_button("📥 Excel", b, "Data.xlsx")
-            with c2:
-                with st.expander("🔧 Hapus/Cetak"):
-                    sel = st.selectbox("Pilih", df.apply(lambda x: f"{x['id']} | {x['deskripsi']} | {x['nominal']:,.0f}", axis=1))
-                    if sel:
-                        sid = int(sel.split(" |")[0])
-                        cx, cy = st.columns(2)
-                        with cx: 
-                            t = df[df['id']==sid].iloc[0]
-                            st.download_button("🖨️ PDF", generate_pdf(sid, t['tanggal'], t['deskripsi'], t['nominal'], t['akun_debit'], t['akun_kredit']), "Doc.pdf")
-                        with cy:
-                            if st.button("🗑️ Hapus", type="primary"):
-                                db.run_query("DELETE FROM jurnal WHERE id=?", (sid,))
-                                st.success("Dihapus")
-                                st.rerun()
-        else:
-            st.info("Kosong")
+        if not df_j.empty:
+            b = io.BytesIO()
+            with pd.ExcelWriter(b, engine='xlsxwriter') as w: 
+                df_j.to_excel(w, index=False)
+            st.download_button("📥 Excel", b, "jurnal.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", key='btn_xls')
+
+    if not df_j.empty:
+        
+        html = """<table class="journal-table"><thead><tr><th width="15%">Tanggal</th><th width="45%">Akun & Keterangan</th><th width="10%">Ref</th><th width="15%" style="text-align:right">Debit</th><th width="15%" style="text-align:right">Kredit</th></tr></thead><tbody>"""
+        for _, r in df_j.iterrows():
+            nom = f"Rp {r['nominal']:,.0f}"
+            html += f"""<tr><td style="border:none; font-weight:bold;">{r['tanggal']}</td><td style="border:none;" class="acc-db">{r['akun_debit']}</td><td style="border:none;"><span class="tag-db">Debit</span></td><td style="border:none;" class="money">{nom}</td><td style="border:none;"></td></tr>
+                        <tr><td style="font-size:11px; color:#999;">ID: {r['id']}</td><td class="acc-cr">↳ {r['akun_kredit']} <br><span style="font-size:12px; color:#888;">Note: {r['deskripsi']}</span></td><td><span class="tag-cr">Kredit</span></td><td></td><td class="money">{nom}</td></tr>"""
+        st.markdown(html+"</tbody></table>", unsafe_allow_html=True)
+        
+        
+        with st.expander("🛠️ Tools: Hapus / Cetak Bukti PDF"):
+            col_act1, col_act2 = st.columns(2)
+            with col_act1:
+                st.caption("Cetak Kwitansi per Transaksi")
+                
+                id_opts = df_j['id'].tolist()
+                sel_id = st.selectbox("Pilih ID Transaksi:", id_opts)
+                if st.button("🖨️ Download PDF", type="secondary"):
+                   
+                    trx = df_j[df_j['id'] == sel_id].iloc[0]
+                    pdf_data = generate_pdf(trx['id'], trx['tanggal'], trx['deskripsi'], trx['nominal'], trx['akun_debit'], trx['akun_kredit'])
+                    
+                    st.download_button("Klik untuk Unduh PDF", pdf_data, file_name=f"Bukti_{sel_id}.pdf", mime="application/pdf")
+            
+            with col_act2:
+                st.caption("Hapus Data (Danger Zone)")
+                del_id = st.number_input("Ketik ID untuk Konfirmasi Hapus:", min_value=0, step=1)
+                if st.button("🗑️ Hapus Permanen", type="primary"):
+                    db.run_query("DELETE FROM jurnal WHERE id=?", (del_id,))
+                    st.warning(f"Transaksi ID {del_id} berhasil dihapus.")
+                    time.sleep(1)
+                    st.rerun()
     else:
-        st.info("Belum ada data")
+        st.info("Data tidak ditemukan untuk kategori ini.")
+
+
+def generate_gl_rows(df, acc_name, is_normal_debit):
+    rows_html = ""
+    running_balance = 0
+    total_debit = 0
+    total_kredit = 0
+
+    for _, r in df.iterrows():
+        if r['akun_debit'] == acc_name:
+            mut_debit = r['nominal']
+            mut_kredit = 0
+            ref = "DB"
+        else:
+            mut_debit = 0
+            mut_kredit = r['nominal']
+            ref = "CR"
+        
+        if is_normal_debit:
+            running_balance += (mut_debit - mut_kredit)
+        else:
+            running_balance += (mut_kredit - mut_debit)
+        
+        total_debit += mut_debit
+        total_kredit += mut_kredit
+
+        str_d = f"{mut_debit:,.0f}" if mut_debit > 0 else "-"
+        str_c = f"{mut_kredit:,.0f}" if mut_kredit > 0 else "-"
+        str_b = f"{running_balance:,.0f}"
+        
+        
+        rows_html += f"""
+        <tr>
+            <td style="white-space:nowrap;">{r['tanggal']}</td>
+            <td>
+                <span style="font-weight:600; color:#374151;">{r['deskripsi']}</span><br>
+                <span class="ref-badge">Ref: {ref}-{r['id']}</span>
+            </td>
+            <td class="val-db">{str_d}</td>
+            <td class="val-cr">{str_c}</td>
+            <td class="val-bal">Rp {str_b}</td>
+        </tr>
+        """
+    
+    return rows_html, total_debit, total_kredit, running_balance
+
 
 @login_required
 def page_buku_besar():
-    st.title("General Ledger")
-    acc_name = st.selectbox("Pilih Akun:", db.get_all_acc())
-    acc_info = db.get_df("SELECT kode_akun, tipe_akun FROM akun WHERE nama_akun=?", (acc_name,)).iloc[0]
-    is_db = True if acc_info['tipe_akun'] in ['Aset','Beban'] else False
-    st.caption(f"Kode: {acc_info['kode_akun']} | Normal: {'Debit' if is_db else 'Kredit'}")
+    st.title("📖 General Ledger")
+    
+   
+    st.markdown("""
+    <style>
+        .gl-table { width: 100%; border-collapse: collapse; font-family: 'Inter', sans-serif; margin-top: 15px; color: #374151; }
+        .gl-table thead th { 
+            background-color: #768209; color: white; font-size: 12px; 
+            text-transform: uppercase; letter-spacing: 1px; padding: 12px 8px; 
+            text-align: right; 
+        }
+        .gl-table thead th:first-child, .gl-table thead th:nth-child(2) { text-align: left; }
+        .gl-table tbody tr { border-bottom: 1px solid rgba(0,0,0,0.05); transition: background-color 0.1s; }
+        .gl-table tbody tr:hover { background-color: rgba(118, 130, 9, 0.05); }
+        .gl-table td { padding: 10px 8px; font-size: 13.5px; vertical-align: middle; text-align: right; }
+        .gl-table td:first-child, .gl-table td:nth-child(2) { text-align: left; }
+        .val-db { color: #166534; } 
+        .val-cr { color: #991b1b; } 
+        .val-bal { font-weight: 800; color: #1f2937; } 
+        .ref-badge { background-color: #e5e7eb; color: #374151; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+        .info-box { background-color: #f4f6e6; border-left: 6px solid #768209; padding: 20px; border-radius: 10px; margin-bottom: 25px; }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("""<div class="info-box"><strong>Buku Besar</strong><br>Detail mutasi dan saldo per akun.</div>""", unsafe_allow_html=True)
 
+    
+    all_acc = db.get_all_acc()
+    if not all_acc: st.warning("Data Akun Kosong"); return
+    
+    c1, c2 = st.columns([2,1])
+    with c1: acc_name = st.selectbox("Pilih Akun:", all_acc)
+    
+    
+    acc_data = db.get_df("SELECT * FROM akun WHERE nama_akun=?", (acc_name,)).iloc[0]
+    is_debit = acc_data['tipe_akun'] in ['Aset', 'Beban']
+    
+    with c2: 
+        st.markdown(f"<div style='margin-top:30px; text-align:center; font-weight:bold; color:#768209'>Saldo Normal: {'DEBIT' if is_debit else 'KREDIT'}</div>", unsafe_allow_html=True)
+
+    
     df = db.get_df("SELECT * FROM jurnal WHERE akun_debit=? OR akun_kredit=? ORDER BY tanggal ASC, id ASC", (acc_name, acc_name))
+
     if not df.empty:
-        data = []
-        run_bal = 0
-        for _, r in df.iterrows():
-            d = r['nominal'] if r['akun_debit']==acc_name else 0
-            c = r['nominal'] if r['akun_kredit']==acc_name else 0
-            if is_db:
-                run_bal += (d - c)
-            else:
-                run_bal += (c - d)
-            bd = run_bal if (is_db and run_bal>=0) or (not is_db and run_bal<0) else 0
-            bc = run_bal if (not is_db and run_bal>=0) or (is_db and run_bal<0) else 0
-            data.append([pd.to_datetime(r['tanggal']).strftime("%m"), pd.to_datetime(r['tanggal']).strftime("%d"), r['deskripsi'], f"Rp{d:,.0f}" if d else "", f"Rp{c:,.0f}" if c else "", f"Rp{bd:,.0f}" if bd else "", f"Rp{bc:,.0f}" if bc else ""])
         
-        cols = pd.MultiIndex.from_tuples([("Tgl","Bln"),("Tgl","Hari"),("Ket",""),("Mutasi","Debit"),("Mutasi","Kredit"),("Saldo","Debit"),("Saldo","Kredit")])
-        st.markdown("<style>th{text-align:center;background:#FFC107 !important;color:black !important;border:1px solid #ddd !important} td{border:1px solid #ddd !important}</style>", unsafe_allow_html=True)
-        st.dataframe(pd.DataFrame(data, columns=cols), use_container_width=True, height=500)
+        rows_html = ""
+        run_bal = 0
+        sum_d = 0
+        sum_k = 0
+        
+        for _, r in df.iterrows():
+            if r['akun_debit'] == acc_name:
+                d, k = r['nominal'], 0
+                ref = "DB"
+            else:
+                d, k = 0, r['nominal']
+                ref = "CR"
+            
+            if is_debit: run_bal += (d - k)
+            else: run_bal += (k - d)
+            
+            sum_d += d; sum_k += k
+            
+            rows_html += f"""
+            <tr>
+                <td style="white-space:nowrap;">{r['tanggal']}</td>
+                <td><span style="font-weight:600; color:#374151;">{r['deskripsi']}</span><br><span class="ref-badge">Ref: {ref}-{r['id']}</span></td>
+                <td class="val-db">{f"{d:,.0f}" if d else "-"}</td>
+                <td class="val-cr">{f"{k:,.0f}" if k else "-"}</td>
+                <td class="val-bal">Rp {run_bal:,.0f}</td>
+            </tr>"""
+
+        
+        full_html = f"""
+        <table class="gl-table">
+            <thead>
+                <tr>
+                    <th width="12%">Tanggal</th><th width="40%">Keterangan</th>
+                    <th width="15%">Debit</th><th width="15%">Kredit</th><th width="18%">Saldo</th>
+                </tr>
+            </thead>
+            <tbody>{rows_html}</tbody>
+            <tfoot>
+                <tr style="background-color:#f4f6e6; font-weight:bold; border-top:2px solid #768209;">
+                    <td colspan="2" style="text-align:right;">TOTAL:</td>
+                    <td class="val-db">{sum_d:,.0f}</td>
+                    <td class="val-cr">{sum_k:,.0f}</td>
+                    <td class="val-bal">Rp {run_bal:,.0f}</td>
+                </tr>
+            </tfoot>
+        </table>
+        """
+        
+        st.markdown(full_html, unsafe_allow_html=True)
+        
+       
+        st.markdown("<br>", unsafe_allow_html=True)
+        b = io.BytesIO()
+        with pd.ExcelWriter(b, engine='xlsxwriter') as w: df.to_excel(w, index=False)
+        st.download_button("📥 Download Excel", b, "gl.xlsx")
+        
     else:
-        st.info("No data")
+        st.info("Belum ada transaksi.")
 
 @login_required
 def page_laporan():
-    st.title("Reports")
-    t_ns, t_lr, t_pos = st.tabs(["⚖️ Neraca Saldo", "📉 Laba Rugi (Detail)", "🏛️ Neraca"])
+    st.title("📑 Financial Reports")
+
+    
+    st.markdown("""
+    <style>
+        /* Tabel Teks Sederhana Transparan */
+        .text-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-family: 'Inter', sans-serif; 
+            color: #333;
+        }
+        .text-table th { 
+            text-align: left; 
+            border-bottom: 2px solid #768209; 
+            padding: 10px 5px;
+            color: #768209;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+        .text-table td { 
+            padding: 8px 5px; 
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            vertical-align: top;
+        }
+        .text-table tr:last-child td { border-bottom: none; }
+        
+        /* Helper Alignment */
+        .money { text-align: right; font-family: 'Courier New', monospace; font-weight: 600; }
+        .indent { padding-left: 30px !important; color: #555; }
+        .bold { font-weight: bold; color: #000; }
+        .total-row td { 
+            border-top: 2px solid #768209 !important; 
+            background-color: rgba(118, 130, 9, 0.1); 
+            font-weight: bold; 
+            padding: 12px 5px;
+        }
+        
+        .info-box { background-color: #f4f6e6; border-left: 6px solid #768209; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""<div class="info-box">Laporan ini digenerate otomatis dari jurnal transaksi.</div>""", unsafe_allow_html=True)
+
+    
     df = db.get_df("SELECT * FROM jurnal")
     if df.empty:
-        st.info("No Data")
+        st.warning("Belum ada data.")
         return
 
-    with t_ns:
-        st.markdown('<h4 style="text-align:center">NERACA SALDO</h4><hr>', unsafe_allow_html=True)
+    
+    df['nominal'] = pd.to_numeric(df['nominal'], errors='coerce').fillna(0)
+
+    
+    def get_total_html(tipe_list, normal_kredit=True):
+        acc_list = db.get_acc_by_type(tipe_list)
+        html_rows = ""
+        total_val = 0.0
+        
+        for ac in acc_list:
+            d = df[df['akun_debit'] == ac]['nominal'].sum()
+            k = df[df['akun_kredit'] == ac]['nominal'].sum()
+            
+            
+            val = (k - d) if normal_kredit else (d - k)
+            
+            if val != 0:
+                total_val += val
+                
+                txt_val = f"({abs(val):,.0f})" if val < 0 else f"{val:,.0f}"
+                html_rows += f"<tr><td class='indent'>{ac}</td><td class='money'>{txt_val}</td></tr>"
+        
+        return html_rows, total_val
+
+    
+    t1, t2, t3 = st.tabs(["⚖️ Neraca Saldo", "📉 Laba Rugi", "🏛️ Neraca"])
+
+   
+    with t1:
         accs = db.get_df("SELECT kode_akun, nama_akun, tipe_akun FROM akun ORDER BY kode_akun")
-        data=[]
-        td=0
-        tk=0
-        for _,r in accs.iterrows():
-            d = df[df['akun_debit']==r['nama_akun']]['nominal'].sum()
-            k = df[df['akun_kredit']==r['nama_akun']]['nominal'].sum()
-            if r['tipe_akun'] in ["Aset","Beban"] and "Akumulasi" not in r['nama_akun']:
-                bal=d-k
-                sd=bal if bal>0 else 0
-                sk=abs(bal) if bal<0 else 0
-            else:
-                bal=k-d
-                sd=0
-                sk=bal
-            if sd!=0 or sk!=0:
-                data.append([r['kode_akun'], r['nama_akun'], sd, sk])
-                td+=sd
-                tk+=sk
-        data.append(["", "TOTAL", td, tk])
-        df_ns = pd.DataFrame(data, columns=["Kode", "Akun", "Debit", "Kredit"])
-        st.dataframe(df_ns.style.format({"Debit":"Rp {:,.0f}", "Kredit":"Rp {:,.0f}"}).apply(lambda x: ['font-weight:bold; background:#ffdcb2' if x.name==len(df_ns)-1 else '' for _ in x], axis=1), use_container_width=True, hide_index=True)
+        rows = ""
+        tot_d = 0.0
+        tot_k = 0.0
+        
+        for _, r in accs.iterrows():
+            d_sum = df[df['akun_debit'] == r['nama_akun']]['nominal'].sum()
+            k_sum = df[df['akun_kredit'] == r['nama_akun']]['nominal'].sum()
+            
+            is_debit = r['tipe_akun'] in ["Aset", "Beban"] and "Akumulasi" not in r['nama_akun']
+            bal = d_sum - k_sum if is_debit else k_sum - d_sum
+            
+            vd = bal if is_debit and bal > 0 else 0
+            vk = bal if not is_debit and bal > 0 else 0
+            
+            
+            if is_debit and bal < 0: vk = abs(bal); vd = 0
+            if not is_debit and bal < 0: vd = abs(bal); vk = 0
+            
+            tot_d += vd
+            tot_k += vk
+            
+            if bal != 0 or True:
+                rows += f"""<tr>
+                    <td>{r['kode_akun']}</td><td>{r['nama_akun']}</td>
+                    <td class='money'>{f"{vd:,.0f}" if vd else "-"}</td><td class='money'>{f"{vk:,.0f}" if vk else "-"}</td>
+                </tr>"""
+        
+        st.markdown(f"""
+        <table class="text-table">
+            <thead><tr><th>Kode</th><th>Nama Akun</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th></tr></thead>
+            <tbody>{rows}</tbody>
+            <tfoot><tr class="total-row"><td colspan="2">TOTAL</td><td class="money">{tot_d:,.0f}</td><td class="money">{tot_k:,.0f}</td></tr></tfoot>
+        </table>
+        """, unsafe_allow_html=True)
 
-    with t_lr:
-        st.markdown('<h4 style="text-align:center">LAPORAN LABA RUGI</h4>', unsafe_allow_html=True)
-        def show_detail_section(label, filter_col, acc_list):
-            subset = df[df[filter_col].isin(acc_list)]
-            total = subset['nominal'].sum()
-            st.markdown(f"**{label}**")
-            st.write(f"Total: **Rp {total:,.0f}**")
-            with st.expander(f"👁️ Lihat Rincian {label}"):
-                if not subset.empty:
-                    st.dataframe(subset[['tanggal', 'deskripsi', 'nominal']].sort_values('tanggal'), use_container_width=True, hide_index=True)
-                else:
-                    st.caption("- Kosong -")
-            return total
-        st.write("##### I. PENDAPATAN")
-        pdp = db.get_acc_by_type(['Pendapatan'])
-        retur = [x for x in pdp if "Return" in x]
-        sales = [x for x in pdp if "Return" not in x]
-        tot_s = show_detail_section("Penjualan Kotor", "akun_kredit", sales)
-        st.write("") 
-        tot_r = show_detail_section("Retur Penjualan", "akun_debit", retur)
-        net_s = tot_s - tot_r
-        st.info(f"💰 **Pendapatan Bersih: Rp {net_s:,.0f}**")
-        st.markdown("---")
-        st.write("##### II. BEBAN OPERASIONAL")
-        bbn = db.get_acc_by_type(['Beban'])
-        pokok = [b for b in bbn if any(x in b for x in ['HPP','Pakan','Obat','Ternak'])]
-        umum = [b for b in bbn if b not in pokok]
-        tot_p = show_detail_section("A. Beban Pokok Produksi", "akun_debit", pokok)
-        st.write("")
-        tot_u = show_detail_section("B. Beban Umum & Administrasi", "akun_debit", umum)
-        laba = net_s - (tot_p + tot_u)
-        st.divider()
-        st.markdown(f"<h3 style='text-align:right; color:{'green' if laba>=0 else 'red'}'>LABA BERSIH: Rp {laba:,.0f}</h3>", unsafe_allow_html=True)
+    
+    with t2:
+        
+        rows_pdp, tot_pdp = get_total_html(['Pendapatan'], True)
+        rows_bbn, tot_bbn = get_total_html(['Beban'], False)
+        laba = tot_pdp - tot_bbn
+        color = "#166534" if laba >= 0 else "#991b1b" # Hijau/Merah
 
-    with t_pos:
-        st.markdown('<h4 style="text-align:center">POSISI KEUANGAN</h4>', unsafe_allow_html=True)
-        ast = db.get_acc_by_type(['Aset'])
-        liab = db.get_acc_by_type(['Kewajiban'])
-        mod = db.get_acc_by_type(['Modal'])
-        def get_bal(ac, is_ast):
-            res=[]
-            tot=0
-            for a in ac:
-                d=df[df['akun_debit']==a]['nominal'].sum()
-                k=df[df['akun_kredit']==a]['nominal'].sum()
-                if "Akumulasi" in a:
-                    val=k-d
-                    tot-=val
-                    txt=f"({val:,.0f})"
-                elif is_ast:
-                    val=d-k
-                    tot+=val
-                    txt=f"{val:,.0f}"
+        st.markdown(f"""
+        <table class="text-table">
+            <thead><tr><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead>
+            <tbody>
+                <tr><td class="bold" style="padding-top:15px;">PENDAPATAN</td><td></td></tr>
+                {rows_pdp if rows_pdp else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+                <tr style="background:#fafafa;"><td class="bold indent">Total Pendapatan</td><td class="money bold">{tot_pdp:,.0f}</td></tr>
+                
+                <tr><td class="bold" style="padding-top:15px;">BEBAN OPERASIONAL</td><td></td></tr>
+                {rows_bbn if rows_bbn else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+                <tr style="background:#fafafa;"><td class="bold indent">Total Beban</td><td class="money bold">({tot_bbn:,.0f})</td></tr>
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td>LABA BERSIH</td><td class="money" style="color:{color};">{laba:,.0f}</td>
+                </tr>
+            </tfoot>
+        </table>
+        """, unsafe_allow_html=True)
+
+   
+    with t3:
+        
+        _, t_p = get_total_html(['Pendapatan'], True)
+        _, t_b = get_total_html(['Beban'], False)
+        profit_now = t_p - t_b
+        
+        def get_bal_html(tipe, is_asset):
+            acc_list = db.get_acc_by_type([tipe])
+            rows = ""
+            tot = 0.0
+            for ac in acc_list:
+                d = df[df['akun_debit'] == ac]['nominal'].sum()
+                k = df[df['akun_kredit'] == ac]['nominal'].sum()
+                
+                val = 0.0
+                if "Akumulasi" in ac and is_asset: 
+                    val = (k - d) 
+                    tot -= val
+                    display = f"({val:,.0f})"
                 else:
-                    val=k-d
-                    tot+=val
-                    txt=f"{val:,.0f}"
-                if val!=0:
-                    res.append([a, txt])
-            return res, tot
-        da, ta = get_bal(ast, True)
-        dl, tl = get_bal(liab, False)
-        dm, tm = get_bal(mod, False)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader("ASET")
-            st.table(pd.DataFrame(da, columns=["Akun","Nilai"]))
-            st.info(f"TOTAL ASET: Rp {ta:,.0f}")
-        with c2:
-            st.subheader("PASIVA")
-            st.write("Kewajiban")
-            st.table(pd.DataFrame(dl, columns=["Akun","Nilai"]))
-            st.write("Ekuitas")
-            dfm = pd.DataFrame(dm, columns=["Akun","Nilai"])
-            dfm.loc[len(dfm)]=["Laba Berjalan", f"{laba:,.0f}"]
-            st.table(dfm)
-            st.success(f"TOTAL PASIVA: Rp {tl+tm+laba:,.0f}")
+                    val = (d - k) if is_asset else (k - d)
+                    tot += val
+                    display = f"{val:,.0f}"
+                
+                if val != 0:
+                    rows += f"<tr><td class='indent'>{ac}</td><td class='money'>{display}</td></tr>"
+            return rows, tot
+
+        r_ast, t_ast = get_bal_html('Aset', True)
+        r_liab, t_liab = get_bal_html('Kewajiban', False)
+        r_mod, t_mod = get_bal_html('Modal', False)
+        
+        final_equity = t_mod + profit_now
+
+        c_left, c_right = st.columns(2)
+        
+        with c_left:
+            st.markdown(f"""
+            <table class="text-table">
+                <thead><tr><th colspan="2">ASET (AKTIVA)</th></tr></thead>
+                <tbody>
+                    {r_ast if r_ast else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+                </tbody>
+                <tfoot><tr class="total-row"><td>TOTAL ASET</td><td class="money">{t_ast:,.0f}</td></tr></tfoot>
+            </table>
+            """, unsafe_allow_html=True)
+            
+        with c_right:
+            st.markdown(f"""
+            <table class="text-table">
+                <thead><tr><th colspan="2">KEWAJIBAN & EKUITAS</th></tr></thead>
+                <tbody>
+                    <tr><td class="bold" style="font-size:12px;">KEWAJIBAN</td><td></td></tr>
+                    {r_liab if r_liab else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+                    
+                    <tr><td class="bold" style="font-size:12px; padding-top:10px;">EKUITAS</td><td></td></tr>
+                    {r_mod}
+                    <tr><td class='indent bold' style="color:#166534;">Laba Tahun Berjalan</td><td class='money bold' style="color:#166534;">{profit_now:,.0f}</td></tr>
+                </tbody>
+                <tfoot><tr class="total-row"><td>TOTAL PASIVA</td><td class="money">{t_liab + final_equity:,.0f}</td></tr></tfoot>
+            </table>
+            """, unsafe_allow_html=True)
 
 @login_required
 def page_master():
-    st.title("Master Data")
-    t1, t2 = st.tabs(["Accounts", "Logs"])
-    with t1:
-        with st.form("add_acc"):
-            kd = st.text_input("Code (e.g. 1-11)")
-            nm = st.text_input("Name")
-            tp = st.selectbox("Type", ["Aset","Kewajiban","Modal","Pendapatan","Beban"])
-            if st.form_submit_button("Save", type="primary"): 
-                db.run_query("INSERT INTO akun (kode_akun, nama_akun, tipe_akun) VALUES (?,?,?)", (kd,nm,tp))
-                st.rerun()
-        st.dataframe(db.get_df("SELECT * FROM akun ORDER BY kode_akun"), use_container_width=True)
-    with t2:
-        try:
-            with open("system.log", "r") as f:
-                st.text(f.read())
-        except:
-            st.info("No logs")
-    st.markdown("---")
-    with st.expander("🔥 Factory Reset (Danger Zone)"):
-        st.warning("Ini akan menghapus SEMUA transaksi jurnal dan stok!")
-        if st.button("RESET SEMUA DATA", type="primary"):
+    st.title("🗂️ Master Data")
+    
+
+    st.markdown("""
+    <style>
+        .info-box { 
+            background-color: #f4f6e6; 
+            border-left: 6px solid #768209; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            color: #2c3e50; 
+        }
+    </style>
+    <div class="info-box">
+        <strong>Pengaturan Data Induk</strong><br>
+        Kelola daftar Akun (Chart of Accounts) dan sistem di sini.
+    </div>
+    """, unsafe_allow_html=True)
+
+    
+    t_acc, t_log, t_reset = st.tabs(["📂 Master Akun", "📜 System Logs", "⚠️ Factory Reset"])
+
+
+    with t_acc:
+        col_form, col_view = st.columns([1, 2])
+        
+    
+        with col_form:
+            st.write("##### ➕ Input Akun")
+            with st.form("add_acc_form"):
+                kd = st.text_input("Kode", placeholder="Contoh: 1-11")
+                nm = st.text_input("Nama Akun", placeholder="Contoh: Kas Kecil")
+                tp = st.selectbox("Tipe", ["Aset", "Kewajiban", "Modal", "Pendapatan", "Beban"])
+                
+                if st.form_submit_button("Simpan", type="primary"):
+                    if kd and nm:
+                        try:
+                            db.run_query("INSERT INTO akun (kode_akun, nama_akun, tipe_akun) VALUES (?,?,?)", (kd, nm, tp))
+                            st.success(f"Berhasil!")
+                            time.sleep(0.5)
+                            st.rerun()
+                        except:
+                            st.error("Kode/Nama sudah ada!")
+                    else:
+                        st.warning("Wajib diisi.")
+
+        with col_view:
+            st.write("##### 📋 Daftar Akun")
+            
+            df_acc = db.get_df("SELECT kode_akun, nama_akun, tipe_akun FROM akun ORDER BY kode_akun")
+            
+            if not df_acc.empty:
+                st.dataframe(
+                    df_acc,
+                    column_config={
+                        "kode_akun": "Kode",
+                        "nama_akun": "Nama Akun",
+                        "tipe_akun": st.column_config.SelectboxColumn(
+                            "Kategori",
+                            width="medium",
+                            options=["Aset", "Kewajiban", "Modal", "Pendapatan", "Beban"],
+                            disabled=True
+                        )
+                    },
+                    use_container_width=True,
+                    hide_index=True,
+                    height=500
+                )
+                
+                st.markdown("---")
+                with st.expander("🗑️ Hapus Akun"):
+                    del_opt = df_acc['kode_akun'] + " - " + df_acc['nama_akun']
+                    sel_del = st.selectbox("Pilih akun:", del_opt)
+                    if st.button("Hapus Permanen", type="secondary"):
+                        code_del = sel_del.split(" - ")[0]
+                        db.run_query("DELETE FROM akun WHERE kode_akun=?", (code_del,))
+                        st.warning("Dihapus."); time.sleep(0.5); st.rerun()
+            else:
+                st.info("Data kosong.")
+
+    with t_reset:
+        st.error("⚠️ **ZONA BAHAYA**")
+        st.write("Menghapus SEMUA transaksi (Jurnal & Stok). Data Master aman.")
+        if st.button("🔥 RESET DATA TRANSAKSI", type="primary"):
             db.run_query("DELETE FROM jurnal")
             db.run_query("DELETE FROM stock_log")
             db.run_query("UPDATE inventory SET stok_saat_ini = 0")
-            st.success("Sistem Bersih!")
-            time.sleep(1)
-            st.rerun()
+            st.success("Reset Berhasil!"); time.sleep(1); st.rerun()
 
 def login_page():
+
     inject_login_css()
+
+   
+
+    if 'auth_mode' not in st.session_state:
+
+        st.session_state['auth_mode'] = 'login'
+
+
+
+    def toggle_mode():
+
+        if st.session_state['auth_mode'] == 'login':
+
+            st.session_state['auth_mode'] = 'register'
+
+        else:
+
+            st.session_state['auth_mode'] = 'login'
+
+
+
     col_left, col_right = st.columns([1.3, 1], gap="large")
+
+   
+
     with col_left:
+
         logo_html = ""
+
         try:
+
             img_b64 = get_img_as_base64("logo.png")
+
             logo_html = f'<img src="data:image/png;base64,{img_b64}" class="brand-logo-img">'
+
         except:
+
             logo_html = "<h2>Hasna Farm</h2>"
+
         st.markdown(f"""<div class="brand-box">{logo_html}<p class="brand-subtitle">Hasna Farm Enterprise</p><p class="brand-desc">Sistem Informasi Akuntansi &<br>Manajemen Peternakan Modern</p></div>""", unsafe_allow_html=True)
+
+   
+
     with col_right:
-        with st.form("login_form"):
-            st.markdown("<h3 style='text-align:center; color:#333; margin:0 0 20px 0;'>Login</h3>", unsafe_allow_html=True)
-            u = st.text_input("Username", placeholder="Masukkan username")
-            p = st.text_input("Password", type="password", placeholder="Masukkan password")
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.form_submit_button("MASUK"):
-                user = db.get_one("SELECT * FROM users WHERE username=? AND password=?", (u, make_hash(p)))
-                if user:
-                    st.session_state['logged_in'] = True
-                    st.session_state['username'] = user['username']
-                    st.session_state['role'] = user['role']
-                    st.rerun()
-                else:
-                    st.error("Username atau Password Salah")
+
+        if st.session_state['auth_mode'] == 'login':
+
+            with st.form("login_form"):
+
+                st.markdown("<h3 style='text-align:center; color:#333; margin:0 0 20px 0;'>Login</h3>", unsafe_allow_html=True)
+
+                u = st.text_input("Username", placeholder="Masukkan username")
+
+                p = st.text_input("Password", type="password", placeholder="Masukkan password")
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+        
+
+                if st.form_submit_button("MASUK", type="primary"):
+
+                    user = db.get_one("SELECT * FROM users WHERE username=? AND password=?", (u, make_hash(p)))
+
+                    if user:
+
+                        st.session_state['logged_in'] = True
+
+                        st.session_state['username'] = user['username']
+
+                        st.session_state['role'] = user['role']
+
+                        st.rerun()
+
+                    else:
+
+                        st.error("Username atau Password Salah")
+
+        
+
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+            if st.button("Belum punya akun? Daftar sekarang", use_container_width=True):
+
+                toggle_mode()
+
+                st.rerun()
+
+
+        else:
+
+            with st.form("register_form"):
+
+                st.markdown("<h3 style='text-align:center; color:#333; margin:0 0 20px 0;'>Daftar Akun Baru</h3>", unsafe_allow_html=True)
+
+                new_u = st.text_input("Username Baru")
+
+                new_p1 = st.text_input("Password", type="password")
+
+                new_p2 = st.text_input("Ulangi Password", type="password")
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                if st.form_submit_button("DAFTAR", type="primary"):
+
+                    if not new_u or not new_p1:
+
+                        st.error("Username dan Password wajib diisi!")
+
+                    elif new_p1 != new_p2:
+
+                        st.error("Password tidak sama!")
+
+                    else:
+
+                        cek_user = db.get_one("SELECT username FROM users WHERE username=?", (new_u,))
+
+                        if cek_user:
+
+                            st.error("Username sudah terpakai!")
+
+                        else:
+
+                            try:
+
+                                db.run_query("INSERT INTO users (username, password, role) VALUES (?,?,?)", (new_u, make_hash(new_p1), 'Manager'))
+
+                                st.success("Akun berhasil dibuat! Silakan login.")
+
+                                time.sleep(1.5)
+
+                                toggle_mode()
+
+                                st.rerun()
+
+                            except Exception as e:
+
+                                st.error(f"Gagal membuat akun: {e}")
+
+
+
+            st.markdown("<div style='height: 10px;'></div>", unsafe_allow_html=True)
+
+            if st.button("Sudah punya akun? Login", use_container_width=True):
+
+                toggle_mode()
+
+                st.rerun()
+
+
+
         st.markdown("<p style='text-align:center; font-size:12px; color:#fff; margin-top:20px; text-shadow: 0 1px 2px rgba(0,0,0,0.8);'>© 2025 Hasna Farm Enterprise</p>", unsafe_allow_html=True)
 
 def main_app():
     inject_main_css()
+    
+    st.markdown("""
+    <style>
+        /* Definisi Animasi Muncul Perlahan (Fade In) */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Styling Hero Section (Header Atas) */
+        .hero-title { font-size: 22px; font-weight: 800; color: #768209; margin-bottom: 5px; }
+        .hero-text { font-size: 14px; line-height: 1.5; color: #4b5563; text-align: justify; }
+        .hero-list { margin-bottom: 0; padding-left: 15px; font-size: 13px; color: #4b5563;}
+        
+        .hero-container {
+            background-color: transparent !important; 
+            padding: 0px; margin-bottom: 15px;
+            /* Tambahkan Animasi di sini */
+            animation: fadeIn 1s ease-out;
+            transition: transform 0.3s ease, filter 0.3s ease;
+        }
+
+        /* Efek saat mouse diarahkan ke Header (Hover) */
+        .hero-container:hover {
+            transform: scale(1.01); /* Membesar sedikit */
+        }
+        
+        /* Efek Hover untuk Kartu Metric (Angka-angka di Dashboard) */
+        div[data-testid="stMetric"] {
+            transition: all 0.3s ease;
+        }
+        div[data-testid="stMetric"]:hover {
+            transform: translateY(-5px); /* Naik sedikit */
+            box-shadow: 0 10px 20px rgba(118, 130, 9, 0.2); /* Bayangan hijau halus */
+            border-color: #768209;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.container():
+        st.markdown('<div class="hero-container">', unsafe_allow_html=True)
+        col_img, col_txt = st.columns([1.5, 3], gap="large")
+        
+        with col_img:
+            # GANTI NAMA FILE DISINI
+            nama_file_gambar = "banner.jpg" 
+            try:
+                st.image(nama_file_gambar, use_container_width=True)
+            except:
+                st.warning(f"⚠️ File '{nama_file_gambar}' belum ada.")
+        
+        with col_txt:
+            st.markdown('<div class="hero-title">Why Hasna Farm ERP?</div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="hero-text">
+                <p>
+                    Hasna Farm merupakan nama peternakan puyuh, lalu sistem ini dibuat untuk memudahkan.
+                    Sistem ini dirancang khusus untuk memodernisasi pengelolaan <b>Hasna Farm</b>. 
+                    Membantu pemilik beralih dari pencatatan manual yang rawan kesalahan ke sistem digital yang terintegrasi.
+                    Peternakan puyuh ini berlokasi di Pagersari RT 02/RW 03, Bergas, Kabupaten Semarang, Jawa Tengah.
+                </p>
+                <ul class="hero-list">
+                    <li>✅ <b>Kontrol Stok Akurat:</b> Mencegah selisih pakan dan hasil panen.</li>
+                    <li>✅ <b>Keuangan Transparan:</b> Laporan laba rugi otomatis dan real-time.</li>
+                    <li>✅ <b>Data Driven:</b> Keputusan bisnis berdasarkan data nyata, bukan asumsi.</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+ 
     role = st.session_state['role']
     if role == "Manager":
         opts = ["Launchpad", "Inventory", "Journal", "General Ledger", "Reports", "Master Data", "Logout"]
@@ -936,36 +1530,42 @@ def main_app():
     else:
         opts = ["Inventory", "Journal", "General Ledger", "Logout"] 
         icns = ["box-seam-fill", "receipt", "book-half", "power"]
-    c_logo_kiri, c_menu, c_logo_kanan = st.columns([1, 10, 1])
-    with c_logo_kiri:
+    
+    c_logo, c_menu = st.columns([1.5, 10.5], gap="medium", vertical_alignment="center")
+    
+    with c_logo:
         try:
-            st.write("")
-            st.image("logo.png", width=80)
+            st.image("logo.png", use_container_width=True)
         except:
-            st.empty()
+            st.caption("Hasna Farm")
+    
     with c_menu:
         selected = option_menu(menu_title=None, options=opts, icons=icns, default_index=0, orientation="horizontal",
             styles={"container": {"padding": "5px!important", "background-color": "#768209", "border-radius": "10px", "box-shadow": "0 4px 6px rgba(0,0,0,0.1)"},
                     "icon": {"color": "white", "font-size": "16px"}, "nav-link": {"font-size": "14px", "text-align": "center", "margin": "0px 5px", "color": "white", "font-weight": "500"},
                     "nav-link-hover": {"background-color": "#5a6307"}, "nav-link-selected": {"background-color": "#3B2417", "font-weight": "700", "border-radius": "8px"}})
-    with c_logo_kanan:
-        try:
-            st.write("")
-            st.image("logo_kanan.png", width=80)
-        except:
-            st.empty()
+    
     if selected != "Logout":
-        st.markdown(f"""<div style='text-align: right; padding: 10px 0; font-size: 0.9rem; color: #666;'>Login sebagai: <b>{st.session_state['username']}</b> <span style='background:#e5e7eb; padding:2px 8px; border-radius:10px; font-size:0.8rem;'>{role}</span></div>""", unsafe_allow_html=True)
-    if selected == "Launchpad": page_dashboard()
-    elif selected == "Inventory": page_inventory()
-    elif selected == "Journal": page_jurnal()
-    elif selected == "General Ledger": page_buku_besar()
-    elif selected == "Reports": page_laporan()
-    elif selected == "Master Data": page_master()
-    elif selected == "Logout":
-        log_activity(st.session_state['username'], "LOGOUT", "User logged out")
-        st.session_state['logged_in'] = False
-        st.rerun()
+        st.markdown(f"""
+        <div style='text-align: right; padding-top: 5px; padding-bottom: 15px; font-size: 0.85rem; color: #666; animation: fadeIn 1.5s ease-out;'>
+            Login sebagai: <b>{st.session_state['username']}</b> 
+            <span style='background:#768209; color:white; padding:2px 8px; border-radius:10px; font-size:0.75rem; margin-left:5px;'>{role}</span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    placeholder = st.empty()
+    
+    with placeholder.container():
+        if selected == "Launchpad": page_dashboard()
+        elif selected == "Inventory": page_inventory()
+        elif selected == "Journal": page_jurnal()
+        elif selected == "General Ledger": page_buku_besar()
+        elif selected == "Reports": page_laporan()
+        elif selected == "Master Data": page_master()
+        elif selected == "Logout":
+            log_activity(st.session_state['username'], "LOGOUT", "User logged out")
+            st.session_state['logged_in'] = False
+            st.rerun()
 
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
