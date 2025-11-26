@@ -1505,11 +1505,11 @@ def main_app():
                 st.warning(f"⚠️ File '{nama_file_gambar}' belum ada.")
         
         with col_txt:
-            st.markdown('<div class="hero-title">Why Hasna Farm ERP?</div>', unsafe_allow_html=True)
+            st.markdown('<div class="hero-title">Apa itu Hasna Farm?</div>', unsafe_allow_html=True)
             st.markdown("""
             <div class="hero-text">
                 <p>
-                    Hasna Farm merupakan nama peternakan puyuh, lalu sistem ini dibuat untuk memudahkan.
+                    <b>Hasna Farm</b> merupakan nama peternakan puyuh, lalu sistem ini dibuat untuk memudahkan.
                     Sistem ini dirancang khusus untuk memodernisasi pengelolaan <b>Hasna Farm</b>. 
                     Membantu pemilik beralih dari pencatatan manual yang rawan kesalahan ke sistem digital yang terintegrasi.
                     Peternakan puyuh ini berlokasi di Pagersari RT 02/RW 03, Bergas, Kabupaten Semarang, Jawa Tengah.
@@ -1570,3 +1570,4 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
