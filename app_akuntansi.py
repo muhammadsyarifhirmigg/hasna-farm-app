@@ -716,7 +716,7 @@ def page_jurnal():
     user_now = st.session_state['username']
 
     
-    t1, t2, t3 = st.tabs(["💰 Penjualan", "🛒 Pembelian", "⚙️ Biaya Umum"])
+    t1, t2, t3, t4 = st.tabs(["💰 Penjualan", "🛒 Pembelian", "⚙️ Biaya Umum", "📂 Saldo Awal"])
     
     with t1:
         with st.form("jual"):
@@ -776,6 +776,46 @@ def page_jurnal():
                 db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, desc, adb, acr, nom, user_now))
                 st.success("OK"); time.sleep(1); st.rerun()
 
+    with t4:
+        st.info("ℹ️ Fitur ini digunakan untuk memasukkan saldo awal akun (migrasi data lama). Sistem akan otomatis menyeimbangkan ke akun 'Historical Balancing'.")
+        
+        with st.form("saldo_awal"):
+            c1, c2 = st.columns(2)
+            tgl = c1.date_input("Tanggal Saldo", date(date.today().year, 1, 1), key="sa_tgl")
+           
+            target_acc = c2.selectbox("Pilih Akun", all_acc, key="sa_acc")
+            
+            c3, c4 = st.columns(2)
+            
+            posisi = c3.radio("Posisi Saldo", ["Debit (Aset/Beban)", "Kredit (Kewajiban/Modal/Pendapatan)"], horizontal=True, key="sa_pos")
+            nom = c4.number_input("Nominal (Rp)", min_value=0.0, step=1000.0, key="sa_nom")
+            
+            ket_input = st.text_input("Keterangan Tambahan", placeholder="Contoh: Saldo per 1 Jan 2025")
+            
+            if st.form_submit_button("Simpan Saldo Awal", type="primary"):
+                if nom > 0:
+                    
+                    contra_acc = "Historical Balancing" 
+                    
+                    if "Debit" in posisi:
+                        adb = target_acc
+                        acr = contra_acc
+                    else:
+                        adb = contra_acc
+                        acr = target_acc
+                    
+                    final_desc = f"Saldo Awal: {target_acc}" 
+                    if ket_input: final_desc += f" ({ket_input})"
+
+                    db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", 
+                                (tgl, final_desc, adb, acr, nom, user_now))
+                    
+                    st.success("Saldo Awal Berhasil Disimpan!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Nominal harus lebih dari 0")
+
    
     st.markdown("---")
     
@@ -784,7 +824,7 @@ def page_jurnal():
     with c_title:
         st.subheader("📜 Riwayat Jurnal")
     with c_filt:
-        f_mode = st.selectbox("Filter Kategori:", ["Semua", "💰 Penjualan", "🛒 Pembelian", "⚙️ Umum"], label_visibility="collapsed")
+        f_mode = st.selectbox("Filter Kategori:", ["Semua", "💰 Penjualan", "🛒 Pembelian", "⚙️ Umum", "📂 Saldo Awal"], label_visibility="collapsed")
     
     
     query = "SELECT * FROM jurnal"
@@ -793,7 +833,9 @@ def page_jurnal():
     elif f_mode == "🛒 Pembelian":
         query += " WHERE deskripsi LIKE 'BELI%' OR akun_debit LIKE '%Beban%'"
     elif f_mode == "⚙️ Umum":
-        query += " WHERE deskripsi NOT LIKE 'JUAL%' AND deskripsi NOT LIKE 'BELI%'"
+        query += " WHERE deskripsi NOT LIKE 'JUAL%' AND deskripsi NOT LIKE 'BELI%' AND deskripsi NOT LIKE 'Saldo Awal%'"
+    elif f_mode == "📂 Saldo Awal":
+        query += " WHERE deskripsi LIKE 'Saldo Awal%'"
     
     query += " ORDER BY tanggal DESC, id DESC LIMIT 50" 
     
@@ -1001,12 +1043,20 @@ def page_laporan():
     
     st.markdown("""
     <style>
+        /* Container untuk mencegah overflow */
+        .block-container {
+            max-width: 100%;
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+        
         /* Tabel Teks Sederhana Transparan */
         .text-table { 
             width: 100%; 
             border-collapse: collapse; 
             font-family: 'Inter', sans-serif; 
             color: #333;
+            table-layout: fixed; /* Penting untuk mencegah overflow */
         }
         .text-table th { 
             text-align: left; 
@@ -1015,12 +1065,15 @@ def page_laporan():
             color: #768209;
             font-size: 14px;
             text-transform: uppercase;
+            word-wrap: break-word;
         }
         .text-table td { 
             padding: 8px 5px; 
             border-bottom: 1px solid #eee;
             font-size: 14px;
             vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .text-table tr:last-child td { border-bottom: none; }
         
@@ -1035,7 +1088,18 @@ def page_laporan():
             padding: 12px 5px;
         }
         
-        .info-box { background-color: #f4f6e6; border-left: 6px solid #768209; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .info-box { 
+            background-color: #f4f6e6; 
+            border-left: 6px solid #768209; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin-bottom: 20px; 
+        }
+        
+        /* Fix untuk scroll horizontal */
+        .stTabs [data-baseweb="tab-panel"] {
+            overflow-x: hidden;
+        }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1060,12 +1124,10 @@ def page_laporan():
             d = df[df['akun_debit'] == ac]['nominal'].sum()
             k = df[df['akun_kredit'] == ac]['nominal'].sum()
             
-            
             val = (k - d) if normal_kredit else (d - k)
             
             if val != 0:
                 total_val += val
-                
                 txt_val = f"({abs(val):,.0f})" if val < 0 else f"{val:,.0f}"
                 html_rows += f"<tr><td class='indent'>{ac}</td><td class='money'>{txt_val}</td></tr>"
         
@@ -1091,7 +1153,6 @@ def page_laporan():
             vd = bal if is_debit and bal > 0 else 0
             vk = bal if not is_debit and bal > 0 else 0
             
-            
             if is_debit and bal < 0: vk = abs(bal); vd = 0
             if not is_debit and bal < 0: vd = abs(bal); vk = 0
             
@@ -1100,29 +1161,45 @@ def page_laporan():
             
             if bal != 0 or True:
                 rows += f"""<tr>
-                    <td>{r['kode_akun']}</td><td>{r['nama_akun']}</td>
-                    <td class='money'>{f"{vd:,.0f}" if vd else "-"}</td><td class='money'>{f"{vk:,.0f}" if vk else "-"}</td>
+                    <td style="width:15%">{r['kode_akun']}</td>
+                    <td style="width:45%">{r['nama_akun']}</td>
+                    <td class='money' style="width:20%">{f"{vd:,.0f}" if vd else "-"}</td>
+                    <td class='money' style="width:20%">{f"{vk:,.0f}" if vk else "-"}</td>
                 </tr>"""
         
         st.markdown(f"""
+        <div style="overflow-x: auto;">
         <table class="text-table">
-            <thead><tr><th>Kode</th><th>Nama Akun</th><th style="text-align:right">Debit</th><th style="text-align:right">Kredit</th></tr></thead>
+            <thead><tr>
+                <th style="width:15%">Kode</th>
+                <th style="width:45%">Nama Akun</th>
+                <th style="text-align:right; width:20%">Debit</th>
+                <th style="text-align:right; width:20%">Kredit</th>
+            </tr></thead>
             <tbody>{rows}</tbody>
-            <tfoot><tr class="total-row"><td colspan="2">TOTAL</td><td class="money">{tot_d:,.0f}</td><td class="money">{tot_k:,.0f}</td></tr></tfoot>
+            <tfoot><tr class="total-row">
+                <td colspan="2">TOTAL</td>
+                <td class="money">{tot_d:,.0f}</td>
+                <td class="money">{tot_k:,.0f}</td>
+            </tr></tfoot>
         </table>
+        </div>
         """, unsafe_allow_html=True)
 
     
     with t2:
-        
         rows_pdp, tot_pdp = get_total_html(['Pendapatan'], True)
         rows_bbn, tot_bbn = get_total_html(['Beban'], False)
         laba = tot_pdp - tot_bbn
-        color = "#166534" if laba >= 0 else "#991b1b" # Hijau/Merah
+        color = "#166534" if laba >= 0 else "#991b1b"
 
         st.markdown(f"""
+        <div style="overflow-x: auto;">
         <table class="text-table">
-            <thead><tr><th>Keterangan</th><th style="text-align:right">Nominal (Rp)</th></tr></thead>
+            <thead><tr>
+                <th style="width:70%">Keterangan</th>
+                <th style="text-align:right; width:30%">Nominal (Rp)</th>
+            </tr></thead>
             <tbody>
                 <tr><td class="bold" style="padding-top:15px;">PENDAPATAN</td><td></td></tr>
                 {rows_pdp if rows_pdp else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
@@ -1134,15 +1211,16 @@ def page_laporan():
             </tbody>
             <tfoot>
                 <tr class="total-row">
-                    <td>LABA BERSIH</td><td class="money" style="color:{color};">{laba:,.0f}</td>
+                    <td>LABA BERSIH</td>
+                    <td class="money" style="color:{color};">{laba:,.0f}</td>
                 </tr>
             </tfoot>
         </table>
+        </div>
         """, unsafe_allow_html=True)
 
    
     with t3:
-        
         _, t_p = get_total_html(['Pendapatan'], True)
         _, t_b = get_total_html(['Beban'], False)
         profit_now = t_p - t_b
@@ -1179,17 +1257,20 @@ def page_laporan():
         
         with c_left:
             st.markdown(f"""
+            <div style="overflow-x: auto;">
             <table class="text-table">
                 <thead><tr><th colspan="2">ASET (AKTIVA)</th></tr></thead>
                 <tbody>
                     {r_ast if r_ast else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
                 </tbody>
-                <tfoot><tr class="total-row"><td>TOTAL ASET</td><td class="money">{t_ast:,.0f}</td></tr></tfoot>
+                <tfoot><tr class="total-row"><td style="width:60%">TOTAL ASET</td><td class="money" style="width:40%">{t_ast:,.0f}</td></tr></tfoot>
             </table>
+            </div>
             """, unsafe_allow_html=True)
             
         with c_right:
             st.markdown(f"""
+            <div style="overflow-x: auto;">
             <table class="text-table">
                 <thead><tr><th colspan="2">KEWAJIBAN & EKUITAS</th></tr></thead>
                 <tbody>
@@ -1200,9 +1281,11 @@ def page_laporan():
                     {r_mod}
                     <tr><td class='indent bold' style="color:#166534;">Laba Tahun Berjalan</td><td class='money bold' style="color:#166534;">{profit_now:,.0f}</td></tr>
                 </tbody>
-                <tfoot><tr class="total-row"><td>TOTAL PASIVA</td><td class="money">{t_liab + final_equity:,.0f}</td></tr></tfoot>
+                <tfoot><tr class="total-row"><td style="width:60%">TOTAL PASIVA</td><td class="money" style="width:40%">{t_liab + final_equity:,.0f}</td></tr></tfoot>
             </table>
+            </div>
             """, unsafe_allow_html=True)
+            
 
 @login_required
 def page_master():
@@ -1505,11 +1588,11 @@ def main_app():
                 st.warning(f"⚠️ File '{nama_file_gambar}' belum ada.")
         
         with col_txt:
-            st.markdown('<div class="hero-title">Apa itu Hasna Farm?</div>', unsafe_allow_html=True)
+            st.markdown('<div class="hero-title">Why Hasna Farm ERP?</div>', unsafe_allow_html=True)
             st.markdown("""
             <div class="hero-text">
                 <p>
-                    <b>Hasna Farm</b> merupakan nama peternakan puyuh, lalu sistem ini dibuat untuk memudahkan.
+                    Hasna Farm merupakan nama peternakan puyuh, lalu sistem ini dibuat untuk memudahkan.
                     Sistem ini dirancang khusus untuk memodernisasi pengelolaan <b>Hasna Farm</b>. 
                     Membantu pemilik beralih dari pencatatan manual yang rawan kesalahan ke sistem digital yang terintegrasi.
                     Peternakan puyuh ini berlokasi di Pagersari RT 02/RW 03, Bergas, Kabupaten Semarang, Jawa Tengah.
@@ -1570,4 +1653,3 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
-
