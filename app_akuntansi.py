@@ -777,44 +777,85 @@ def page_jurnal():
                 st.success("OK"); time.sleep(1); st.rerun()
 
     with t4:
-        st.info("ℹ️ Fitur ini digunakan untuk memasukkan saldo awal akun (migrasi data lama). Sistem akan otomatis menyeimbangkan ke akun 'Historical Balancing'.")
-        
-        with st.form("saldo_awal"):
-            c1, c2 = st.columns(2)
-            tgl = c1.date_input("Tanggal Saldo", date(date.today().year, 1, 1), key="sa_tgl")
-           
-            target_acc = c2.selectbox("Pilih Akun", all_acc, key="sa_acc")
-            
-            c3, c4 = st.columns(2)
-            
-            posisi = c3.radio("Posisi Saldo", ["Debit (Aset/Beban)", "Kredit (Kewajiban/Modal/Pendapatan)"], horizontal=True, key="sa_pos")
-            nom = c4.number_input("Nominal (Rp)", min_value=0.0, step=1000.0, key="sa_nom")
-            
-            ket_input = st.text_input("Keterangan Tambahan", placeholder="Contoh: Saldo per 1 Jan 2025")
-            
-            if st.form_submit_button("Simpan Saldo Awal", type="primary"):
-                if nom > 0:
-                    
-                    contra_acc = "Historical Balancing" 
-                    
-                    if "Debit" in posisi:
-                        adb = target_acc
-                        acr = contra_acc
-                    else:
-                        adb = contra_acc
-                        acr = target_acc
-                    
-                    final_desc = f"Saldo Awal: {target_acc}" 
-                    if ket_input: final_desc += f" ({ket_input})"
+        st.info("ℹ️ Input Saldo Awal untuk migrasi data. Pilih 'Jenis Saldo' sesuai kebutuhan.")
+    
+        inv_data = db.get_df("SELECT kode_barang, nama_barang, satuan FROM inventory")
+        inv_dict = {f"{r['nama_barang']} ({r['satuan']})": r['kode_barang'] for _, r in inv_data.iterrows()} if not inv_data.empty else {}
 
-                    db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", 
-                                (tgl, final_desc, adb, acr, nom, user_now))
+        with st.form("saldo_awal_v2"):
+           
+            jenis_sa = st.radio("Jenis Saldo Awal:", ["💰 Akun Keuangan (Kas/Bank/Modal/dll)", "📦 Stok Barang (Inventory)"], horizontal=True)
+            st.markdown("---")
+
+            c1, c2 = st.columns(2)
+            tgl = c1.date_input("Tanggal Saldo", date(date.today().year, 1, 1), key="sa_tgl_v2")
+            
+            
+            if "Stok Barang" in jenis_sa:
+                
+                if not inv_dict:
+                    st.error("Data Barang Master masih kosong!")
+                    st.stop()
+                
+                sel_brg_label = c2.selectbox("Pilih Barang Fisik", list(inv_dict.keys()))
+                sel_brg_kode = inv_dict[sel_brg_label]
+                
+                c3, c4, c5 = st.columns(3)
+                qty_fisik = c3.number_input("Jumlah Fisik (Qty)", min_value=0.1, step=1.0)
+                hpp_satuan = c4.number_input("HPP / Harga Modal per Unit", min_value=0.0, step=100.0)
+                
+                nom_total = qty_fisik * hpp_satuan
+                c5.metric("Total Nilai (Rp)", f"{nom_total:,.0f}")
+                
+                
+                aset_only = db.get_acc_by_type(['Aset'])
+                target_acc = st.selectbox("Link ke Akun Aset Persediaan:", aset_only, help="Pilih akun Aset yang menampung nilai barang ini")
+                
+                posisi = "Debit" 
+                ket_default = f"Saldo Awal Stok: {sel_brg_label}"
+            
+            else:
+                
+                target_acc = c2.selectbox("Pilih Akun", all_acc, key="sa_acc_v2")
+                c3, c4 = st.columns(2)
+                posisi_raw = c3.radio("Posisi Saldo", ["Debit (Aset/Beban)", "Kredit (Kewajiban/Modal/Pendapatan)"], horizontal=True, key="sa_pos_v2")
+                posisi = "Debit" if "Debit" in posisi_raw else "Kredit"
+                nom_total = c4.number_input("Nominal (Rp)", min_value=0.0, step=1000.0, key="sa_nom_v2")
+                ket_default = f"Saldo Awal Akun: {target_acc}"
+
+            ket_input = st.text_input("Keterangan", value=ket_default)
+
+            if st.form_submit_button("💾 Simpan Saldo Awal", type="primary"):
+                if nom_total > 0:
                     
-                    st.success("Saldo Awal Berhasil Disimpan!")
-                    time.sleep(1)
+                    contra_acc = "Historical Balancing"
+                    
+                    if posisi == "Debit":
+                        adb, acr = target_acc, contra_acc
+                    else:
+                        adb, acr = contra_acc, target_acc
+                    
+                    db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", 
+                                (tgl, ket_input, adb, acr, nom_total, user_now))
+                    
+                    
+                    if "Stok Barang" in jenis_sa:
+                       
+                        db.run_query("UPDATE inventory SET stok_saat_ini = stok_saat_ini + ? WHERE kode_barang = ?", (qty_fisik, sel_brg_kode))
+                        
+                        
+                        
+                        desc_log = "Saldo Awal (Opname)"
+                        db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", 
+                                    (tgl, sel_brg_kode, "IN", qty_fisik, hpp_satuan, desc_log, user_now))
+                        
+                        st.toast(f"Stok {sel_brg_label} bertambah {qty_fisik}!", icon="📦")
+
+                    st.success("Data berhasil disimpan & terintegrasi!")
+                    time.sleep(1.5)
                     st.rerun()
                 else:
-                    st.error("Nominal harus lebih dari 0")
+                    st.error("Nominal/Jumlah tidak boleh 0")
 
    
     st.markdown("---")
@@ -1653,3 +1694,4 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
