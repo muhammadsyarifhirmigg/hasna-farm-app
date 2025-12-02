@@ -252,12 +252,40 @@ class DatabaseManager:
 
     def init_db(self):
         with self._conn() as c:
+            
             c.execute("CREATE TABLE IF NOT EXISTS users (username TEXT PRIMARY KEY, password TEXT, role TEXT)")
             c.execute("CREATE TABLE IF NOT EXISTS akun (id INTEGER PRIMARY KEY AUTOINCREMENT, kode_akun TEXT UNIQUE, nama_akun TEXT UNIQUE, tipe_akun TEXT)")
             c.execute("CREATE TABLE IF NOT EXISTS jurnal (id INTEGER PRIMARY KEY, tanggal TEXT, deskripsi TEXT, akun_debit TEXT, akun_kredit TEXT, nominal REAL, created_at TIMESTAMP, created_by TEXT)")
-            c.execute("CREATE TABLE IF NOT EXISTS inventory (id INTEGER PRIMARY KEY, kode_barang TEXT UNIQUE, nama_barang TEXT, kategori TEXT, satuan TEXT, stok_saat_ini REAL, min_stok REAL)")
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS inventory (
+                    id INTEGER PRIMARY KEY, 
+                    kode_barang TEXT UNIQUE, 
+                    nama_barang TEXT, 
+                    kategori TEXT, 
+                    satuan TEXT, 
+                    stok_saat_ini REAL, 
+                    min_stok REAL
+                )
+            """)
+
+            
+            cursor = c.execute("PRAGMA table_info(inventory)")
+            
+            existing_cols = [row['name'] for row in cursor.fetchall()]
+
+            
+            if 'akun_aset' not in existing_cols:
+                c.execute("ALTER TABLE inventory ADD COLUMN akun_aset TEXT")
+            
+            if 'akun_hpp' not in existing_cols:
+                c.execute("ALTER TABLE inventory ADD COLUMN akun_hpp TEXT")
+            
+            if 'std_cost' not in existing_cols:
+                c.execute("ALTER TABLE inventory ADD COLUMN std_cost REAL DEFAULT 0")
+
             c.execute("CREATE TABLE IF NOT EXISTS stock_log (id INTEGER PRIMARY KEY, tanggal TEXT, kode_barang TEXT, jenis_gerak TEXT, jumlah REAL, harga_satuan REAL DEFAULT 0, keterangan TEXT, user TEXT)")
 
+           
             if not c.execute("SELECT * FROM users").fetchone():
                 c.execute("INSERT INTO users VALUES (?,?,?)", ('admin', make_hash('admin123'), 'Manager'))
                 c.execute("INSERT INTO users VALUES (?,?,?)", ('kasir', make_hash('staff123'), 'Staff'))
@@ -279,18 +307,19 @@ class DatabaseManager:
                 ]
                 c.executemany("INSERT INTO akun (kode_akun, nama_akun, tipe_akun) VALUES (?,?,?)", real_accounts)
             
+           
             if not c.execute("SELECT * FROM inventory").fetchone():
                 real_inv = [
-                    ("PKN-MERAH", "Pakan Kukila Merah", "Pakan", "Sak", 0, 5),
-                    ("PKN-BIRU", "Pakan Kukila Biru", "Pakan", "Sak", 0, 5),
-                    ("TELUR", "Telur Puyuh", "Produk", "Dus", 0, 10),
-                    ("PUPUK", "Pupuk Organik (Kotoran)", "Produk", "Sak", 0, 5),
-                    ("VIT-OBAT", "Vitamin & Obat", "Obat", "Paket", 0, 2)
+                    ("PKN-MERAH", "Pakan Kukila Merah", "Pakan", "Sak", 0, 5, "Persediaan Pakan Ternak", "Beban Pakan", 360000),
+                    ("PKN-BIRU", "Pakan Kukila Biru", "Pakan", "Sak", 0, 5, "Persediaan Pakan Ternak", "Beban Pakan", 435000),
+                    ("TELUR", "Telur Puyuh", "Produk", "Dus", 0, 10, "Persediaan Telur Puyuh", "HPP Telur Puyuh", 285000),
+                    ("PUPUK", "Pupuk Organik (Kotoran)", "Produk", "Sak", 0, 5, "Persediaan Kotoran (Pupuk)", "HPP Kotoran (Pupuk)", 5000),
+                    ("VIT-OBAT", "Vitamin & Obat", "Obat", "Paket", 0, 2, "Persediaan Obat & Vitamin", "Beban Obat & Vitamin", 100000)
                 ]
-                c.executemany("INSERT INTO inventory (kode_barang, nama_barang, kategori, satuan, stok_saat_ini, min_stok) VALUES (?,?,?,?,?,?)", real_inv)
+                
+                c.executemany("INSERT INTO inventory (kode_barang, nama_barang, kategori, satuan, stok_saat_ini, min_stok, akun_aset, akun_hpp, std_cost) VALUES (?,?,?,?,?,?,?,?,?)", real_inv)
             
             c.commit()
-
     def run_query(self, q, p=()):
         q = q.replace('%s', '?')
         try:
@@ -732,36 +761,90 @@ def page_jurnal():
             ca, cb = st.columns(2)
             adb = ca.selectbox("Masuk Ke", akun_kas, key="j_db")
             acr = cb.selectbox("Sumber", akun_pdp, key="j_cr")
+        
             if st.form_submit_button("Simpan Penjualan", type="primary"):
                 if brg:
                     kd = inv_opts[brg]
-                    cur = inv_df[inv_df['kode_barang']==kd]['stok_saat_ini'].values[0]
-                    if qty > cur: st.error("Stok Kurang!"); st.stop()
+                
+                
+                    cur_data = db.get_one("SELECT stok_saat_ini, akun_aset, akun_hpp, std_cost FROM inventory WHERE kode_barang=?", (kd,))
+                    stok_db, acc_aset, acc_hpp, std_cost = cur_data
+                
+                    if qty > stok_db: st.error("Stok Kurang!"); st.stop()
+                
+                    nilai_hpp_total = qty * (std_cost if std_cost else 0)
+                
+               
                     db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini-? WHERE kode_barang=?", (qty, kd))
                     db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", (tgl, kd, "OUT", qty, prc, f"Sold: {ket}", user_now))
-                db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, f"JUAL {brg.split(' (')[0]}: {ket}", adb, acr, tot, user_now))
-                st.success("OK"); time.sleep(1); st.rerun()
+                
+               
+                    db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, f"JUAL {brg.split(' (')[0]}: {ket}", adb, acr, tot, user_now))
+                
+                
+                if nilai_hpp_total > 0 and acc_aset and acc_hpp:
+                    desc_hpp = f"Cost of Goods Sold (Ref: {brg.split(' (')[0]})"
+                    db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", 
+                                (tgl, desc_hpp, acc_hpp, acc_aset, nilai_hpp_total, user_now))
+                
+                st.success("OK - Pendapatan & HPP Tercatat"); time.sleep(1); st.rerun()
 
     with t2:
-        with st.form("beli"):
+        with st.form("beli"): 
+            st.caption("Pembelian (Otomatis Masuk Persediaan)")
+            
             c1, c2 = st.columns(2)
             tgl = c1.date_input("Tgl", date.today(), key="b_tgl")
-            brg = c2.selectbox("Barang", list(inv_opts.keys())) if inv_opts else None
+            brg_key = c2.selectbox("Barang", list(inv_opts.keys())) if inv_opts else None
+            
             c3, c4, c5 = st.columns(3)
             qty = c3.number_input("Qty", 1.0, step=1.0, key="b_qty")
             tot = c4.number_input("Total Bayar", step=1000.0, key="b_tot")
             c5.metric("Harga/Unit", f"Rp {tot/qty:,.0f}" if qty>0 else 0)
+            
             ket = st.text_input("Ket", placeholder="Toko...")
+            
+            
             ca, cb = st.columns(2)
-            adb = ca.selectbox("Untuk", akun_bbn+akun_kas, key="b_db")
-            acr = cb.selectbox("Bayar Pakai", akun_kas, key="b_cr")
+            target_aset = ""
+            target_kode = ""
+            
+            if brg_key:
+                target_kode = inv_opts[brg_key]
+            
+                try:
+                    data_brg = db.get_one("SELECT akun_aset FROM inventory WHERE kode_barang=?", (target_kode,))
+                    if data_brg and data_brg[0]:
+                        target_aset = data_brg[0]
+                    else:
+                        target_aset = "Persediaan (Umum)"
+                except:
+                     target_aset = "Persediaan (Umum)"
+
+            
+            adb = ca.text_input("Masuk Ke (Debit)", value=target_aset, disabled=True) 
+            acr = cb.selectbox("Bayar Pakai (Kredit)", akun_kas, key="b_cr")
+            
+            
             if st.form_submit_button("Simpan Pembelian", type="primary"):
-                if brg:
-                    kd = inv_opts[brg]
-                    db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini+? WHERE kode_barang=?", (qty, kd))
-                    db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", (tgl, kd, "IN", qty, (tot/qty if qty>0 else 0), f"Buy: {ket}", user_now))
-                db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, f"BELI {brg.split(' (')[0]}: {ket}", adb, acr, tot, user_now))
-                st.success("OK"); time.sleep(1); st.rerun()
+                if brg_key and target_aset:
+                   
+                    db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini+? WHERE kode_barang=?", (qty, target_kode))
+                    
+                    
+                    harga_satuan = tot/qty if qty > 0 else 0
+                    db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", 
+                                (tgl, target_kode, "IN", qty, harga_satuan, f"Buy: {ket}", user_now))
+                    
+                    
+                    db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", 
+                                (tgl, f"BELI {brg_key.split(' (')[0]}: {ket}", target_aset, acr, tot, user_now))
+                    
+                    st.success("OK - Persediaan Bertambah")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("Data Barang/Akun tidak valid.")
 
     with t3:
         with st.form("umum"):
@@ -915,13 +998,62 @@ def page_jurnal():
                     st.download_button("Klik untuk Unduh PDF", pdf_data, file_name=f"Bukti_{sel_id}.pdf", mime="application/pdf")
             
             with col_act2:
-                st.caption("Hapus Data (Danger Zone)")
-                del_id = st.number_input("Ketik ID untuk Konfirmasi Hapus:", min_value=0, step=1)
-                if st.button("🗑️ Hapus Permanen", type="primary"):
-                    db.run_query("DELETE FROM jurnal WHERE id=?", (del_id,))
-                    st.warning(f"Transaksi ID {del_id} berhasil dihapus.")
-                    time.sleep(1)
-                    st.rerun()
+                st.caption("🗑️ Hapus Transaksi & Koreksi Stok")
+                st.info("Gunakan ini jika terjadi kesalahan input.")
+                
+               
+                del_id = st.number_input("Masukkan ID Jurnal:", min_value=0, step=1, help="Lihat kolom ID di tabel sebelah kiri")
+                
+                
+                st.write("---")
+                is_stok_trx = st.checkbox("Kembalikan Stok Fisik juga?", help="Centang jika yang dihapus adalah transaksi Jual/Beli Barang")
+                
+                kode_brg_restore = None
+                qty_restore = 0.0
+                jenis_koreksi = "IN" 
+                
+                if is_stok_trx:
+                   
+                    inv_for_del = db.get_df("SELECT kode_barang, nama_barang FROM inventory")
+                    inv_del_map = {f"{r['nama_barang']}": r['kode_barang'] for _, r in inv_for_del.iterrows()}
+                    
+                    pilih_brg = st.selectbox("Pilih Barang:", list(inv_del_map.keys()), key="del_brg_sel")
+                    kode_brg_restore = inv_del_map[pilih_brg]
+                    
+                    qty_restore = st.number_input("Jumlah (Qty) yang dikembalikan:", min_value=0.1, step=1.0, key="del_qty")
+                    
+                    tipe_trx = st.radio("Jenis Transaksi yg Dihapus:", ["Penjualan (Barang Kembali ke Gudang)", "Pembelian (Barang Keluar dari Gudang)"])
+                    if "Pembelian" in tipe_trx:
+                        jenis_koreksi = "OUT"
+                    else:
+                        jenis_koreksi = "IN"
+
+                if st.button("🚀 Eksekusi Hapus & Koreksi", type="primary"):
+                    
+                    cek = db.get_one("SELECT * FROM jurnal WHERE id=?", (del_id,))
+                    if not cek:
+                        st.error("ID Transaksi tidak ditemukan!")
+                    else:
+                        
+                        db.run_query("DELETE FROM jurnal WHERE id=?", (del_id,))
+                        msg = f"Jurnal ID {del_id} berhasil dihapus."
+                        
+                        
+                        if is_stok_trx and kode_brg_restore and qty_restore > 0:
+                            if jenis_koreksi == "IN":
+                                db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini+? WHERE kode_barang=?", (qty_restore, kode_brg_restore))
+                                msg += f" Dan Stok {pilih_brg} dikembalikan (+{qty_restore})."
+                            else:
+                                db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini-? WHERE kode_barang=?", (qty_restore, kode_brg_restore))
+                                msg += f" Dan Stok {pilih_brg} dibatalkan (-{qty_restore})."
+                            
+                           
+                            db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", 
+                                        (date.today(), kode_brg_restore, jenis_koreksi, qty_restore, 0, f"Koreksi Hapus ID {del_id}", st.session_state['username']))
+
+                        st.success(msg)
+                        time.sleep(2)
+                        st.rerun()
     else:
         st.info("Data tidak ditemukan untuk kategori ini.")
 
@@ -1694,4 +1826,5 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
 
