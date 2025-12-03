@@ -1464,32 +1464,20 @@ def page_laporan():
 def page_master():
     st.title("🗂️ Master Data")
     
-
     st.markdown("""
-    <style>
-        .info-box { 
-            background-color: #f4f6e6; 
-            border-left: 6px solid #768209; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-bottom: 20px; 
-            color: #2c3e50; 
-        }
-    </style>
-    <div class="info-box">
+    <div style="background-color: #f4f6e6; border-left: 6px solid #768209; padding: 15px; border-radius: 8px; margin-bottom: 20px; color: #2c3e50;">
         <strong>Pengaturan Data Induk</strong><br>
-        Kelola daftar Akun (Chart of Accounts) dan sistem di sini.
+        Kelola Akun (COA), Data Barang (Inventory), dan System Logs di sini.
     </div>
     """, unsafe_allow_html=True)
+    
+   
+    t_acc, t_inv, t_log, t_reset = st.tabs(["📂 Master Akun", "📦 Master Barang", "📜 System Logs", "⚠️ Factory Reset"])
 
     
-    t_acc, t_log, t_reset = st.tabs(["📂 Master Akun", "📜 System Logs", "⚠️ Factory Reset"])
-
-
     with t_acc:
         col_form, col_view = st.columns([1, 2])
         
-    
         with col_form:
             st.write("##### ➕ Input Akun")
             with st.form("add_acc_form"):
@@ -1501,9 +1489,7 @@ def page_master():
                     if kd and nm:
                         try:
                             db.run_query("INSERT INTO akun (kode_akun, nama_akun, tipe_akun) VALUES (?,?,?)", (kd, nm, tp))
-                            st.success(f"Berhasil!")
-                            time.sleep(0.5)
-                            st.rerun()
+                            st.success(f"Berhasil!"); time.sleep(0.5); st.rerun()
                         except:
                             st.error("Kode/Nama sudah ada!")
                     else:
@@ -1511,27 +1497,9 @@ def page_master():
 
         with col_view:
             st.write("##### 📋 Daftar Akun")
-            
             df_acc = db.get_df("SELECT kode_akun, nama_akun, tipe_akun FROM akun ORDER BY kode_akun")
-            
             if not df_acc.empty:
-                st.dataframe(
-                    df_acc,
-                    column_config={
-                        "kode_akun": "Kode",
-                        "nama_akun": "Nama Akun",
-                        "tipe_akun": st.column_config.SelectboxColumn(
-                            "Kategori",
-                            width="medium",
-                            options=["Aset", "Kewajiban", "Modal", "Pendapatan", "Beban"],
-                            disabled=True
-                        )
-                    },
-                    use_container_width=True,
-                    hide_index=True,
-                    height=500
-                )
-                
+                st.dataframe(df_acc, use_container_width=True, hide_index=True, height=500)
                 st.markdown("---")
                 with st.expander("🗑️ Hapus Akun"):
                     del_opt = df_acc['kode_akun'] + " - " + df_acc['nama_akun']
@@ -1543,6 +1511,72 @@ def page_master():
             else:
                 st.info("Data kosong.")
 
+   
+    with t_inv:
+        st.subheader("🛠️ Setup Barang & Harga Modal")
+        st.info("Atur 'Harga Pokok Standar' agar jurnal HPP terbentuk otomatis saat penjualan.")
+        
+        
+        inv_data = db.get_df("SELECT * FROM inventory ORDER BY nama_barang")
+        if inv_data.empty:
+            st.warning("Belum ada data barang. Silakan isi saldo awal / database.")
+        else:
+            
+            opts_inv = {f"{r['nama_barang']} (Kode: {r['kode_barang']})": r['kode_barang'] for _, r in inv_data.iterrows()}
+            sel_inv_label = st.selectbox("Pilih Barang untuk Diedit:", list(opts_inv.keys()))
+            sel_inv_kode = opts_inv[sel_inv_label]
+            
+           
+            curr_item = inv_data[inv_data['kode_barang'] == sel_inv_kode].iloc[0]
+            
+            
+            with st.form("edit_inv_form"):
+                c1, c2 = st.columns(2)
+                new_name = c1.text_input("Nama Barang", value=curr_item['nama_barang'])
+                new_min = c2.number_input("Min. Stok (Alert)", value=float(curr_item['min_stok']), step=1.0)
+                
+                st.markdown("---")
+                st.write("**⚙️ Konfigurasi Akuntansi (Perpetual)**")
+                
+                
+                st.caption("Harga Modal per Unit (digunakan untuk hitung HPP):")
+               
+                val_cost = float(curr_item['std_cost']) if pd.notna(curr_item.get('std_cost')) else 0.0
+                new_cost = st.number_input("Harga Pokok Standar (Rp)", value=val_cost, step=500.0, help="Isi dengan harga rata-rata pembelian.")
+                
+                
+                acc_assets = db.get_acc_by_type(['Aset'])
+                acc_cogs = db.get_acc_by_type(['Beban'])
+                
+                
+                try: idx_ast = acc_assets.index(curr_item['akun_aset']) 
+                except: idx_ast = 0
+                
+                try: idx_hpp = acc_cogs.index(curr_item['akun_hpp']) 
+                except: idx_hpp = 0
+                
+                ca, cb = st.columns(2)
+                new_acc_aset = ca.selectbox("Akun Aset (Persediaan)", acc_assets, index=idx_ast, help="Saat Beli, masuk debit akun ini.")
+                new_acc_hpp = cb.selectbox("Akun Beban (HPP)", acc_cogs, index=idx_hpp, help="Saat Jual, masuk debit akun ini.")
+                
+                if st.form_submit_button("💾 Simpan Perubahan"):
+                    db.run_query("""
+                        UPDATE inventory 
+                        SET nama_barang=?, min_stok=?, std_cost=?, akun_aset=?, akun_hpp=? 
+                        WHERE kode_barang=?
+                    """, (new_name, new_min, new_cost, new_acc_aset, new_acc_hpp, sel_inv_kode))
+                    
+                    st.success(f"Data {new_name} berhasil diperbarui!")
+                    time.sleep(1)
+                    st.rerun()
+
+    
+    with t_log:
+        st.write("#### 📜 Aktivitas User")
+        df_log = db.get_df("SELECT * FROM stock_log ORDER BY tanggal DESC LIMIT 50")
+        st.dataframe(df_log, use_container_width=True)
+
+   
     with t_reset:
         st.error("⚠️ **ZONA BAHAYA**")
         st.write("Menghapus SEMUA transaksi (Jurnal & Stok). Data Master aman.")
@@ -1826,5 +1860,6 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
 
 
