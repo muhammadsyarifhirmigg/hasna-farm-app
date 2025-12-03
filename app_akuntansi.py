@@ -762,7 +762,7 @@ def page_jurnal():
             adb = ca.selectbox("Masuk Ke", akun_kas, key="j_db")
             acr = cb.selectbox("Sumber", akun_pdp, key="j_cr")
         
-             if st.form_submit_button("Simpan Penjualan", type="primary"):
+            if st.form_submit_button("Simpan Penjualan", type="primary"):
                 if brg:
                     kd = inv_opts[brg]
                     
@@ -1866,6 +1866,7 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
 
 
 
