@@ -205,7 +205,7 @@ class DatabaseManager:
         return c
 
     def get_inventory_card_df(self, kode_barang):
-        STD_COSTS = {"TELUR": 333, "PUPUK": 15000, "PKN-MERAH": 360000, "PKN-BIRU": 435000, "VIT-OBAT": 125000}
+        STD_COSTS = {"TELUR": 100000, "PUPUK": 15000, "PKN-MERAH": 360000, "PKN-BIRU": 435000, "VIT-OBAT": 125000}
         logs = self.get_df("SELECT * FROM stock_log WHERE kode_barang=? ORDER BY tanggal ASC, id ASC", (kode_barang,))
         std_price = STD_COSTS.get(kode_barang, 0)
         data = []
@@ -762,32 +762,38 @@ def page_jurnal():
             adb = ca.selectbox("Masuk Ke", akun_kas, key="j_db")
             acr = cb.selectbox("Sumber", akun_pdp, key="j_cr")
         
-            if st.form_submit_button("Simpan Penjualan", type="primary"):
+             if st.form_submit_button("Simpan Penjualan", type="primary"):
                 if brg:
                     kd = inv_opts[brg]
-                
-                
+                    
+                   
                     cur_data = db.get_one("SELECT stok_saat_ini, akun_aset, akun_hpp, std_cost FROM inventory WHERE kode_barang=?", (kd,))
                     stok_db, acc_aset, acc_hpp, std_cost = cur_data
-                
+                    harga_pokok_per_unit = std_cost if std_cost else 0
+                    
                     if qty > stok_db: st.error("Stok Kurang!"); st.stop()
                 
-                    nilai_hpp_total = qty * (std_cost if std_cost else 0)
+                   
+                    nilai_hpp_total = qty * harga_pokok_per_unit
                 
-               
+                   
                     db.run_query("UPDATE inventory SET stok_saat_ini=stok_saat_ini-? WHERE kode_barang=?", (qty, kd))
-                    db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", (tgl, kd, "OUT", qty, prc, f"Sold: {ket}", user_now))
+                    
+                   
+                    db.run_query("INSERT INTO stock_log (tanggal, kode_barang, jenis_gerak, jumlah, harga_satuan, keterangan, user) VALUES (?,?,?,?,?,?,?)", 
+                                (tgl, kd, "OUT", qty, harga_pokok_per_unit, f"Sold: {ket}", user_now))
                 
-               
-                    db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", (tgl, f"JUAL {brg.split(' (')[0]}: {ket}", adb, acr, tot, user_now))
-                
-                
-                if nilai_hpp_total > 0 and acc_aset and acc_hpp:
-                    desc_hpp = f"Cost of Goods Sold (Ref: {brg.split(' (')[0]})"
+                    
                     db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", 
-                                (tgl, desc_hpp, acc_hpp, acc_aset, nilai_hpp_total, user_now))
+                                (tgl, f"JUAL {brg.split(' (')[0]}: {ket}", adb, acr, tot, user_now))
+                    
+                    if nilai_hpp_total > 0 and acc_aset and acc_hpp:
+                        desc_hpp = f"Cost of Goods Sold (Ref: {brg.split(' (')[0]})"
+                        db.run_query("INSERT INTO jurnal (tanggal, deskripsi, akun_debit, akun_kredit, nominal, created_by) VALUES (?,?,?,?,?,?)", 
+                                    (tgl, desc_hpp, acc_hpp, acc_aset, nilai_hpp_total, user_now))
                 
-                st.success("OK - Pendapatan & HPP Tercatat"); time.sleep(1); st.rerun()
+                    st.success("OK - Pendapatan & HPP Tercatat"); time.sleep(1); st.rerun()
+
 
     with t2:
         with st.form("beli"): 
@@ -1860,6 +1866,7 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
 
 
 
