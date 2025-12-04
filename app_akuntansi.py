@@ -205,7 +205,7 @@ class DatabaseManager:
         return c
 
     def get_inventory_card_df(self, kode_barang):
-        STD_COSTS = {"TELUR": 100000, "PUPUK": 15000, "PKN-MERAH": 360000, "PKN-BIRU": 435000, "VIT-OBAT": 125000}
+        STD_COSTS = {"TELUR": 100000, "PUPUK": 6000, "PKN-MERAH": 360000, "PKN-BIRU": 435000, "VIT-OBAT": 125000}
         logs = self.get_df("SELECT * FROM stock_log WHERE kode_barang=? ORDER BY tanggal ASC, id ASC", (kode_barang,))
         std_price = STD_COSTS.get(kode_barang, 0)
         data = []
@@ -1866,6 +1866,7 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
 
 
 
