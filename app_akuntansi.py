@@ -1313,7 +1313,7 @@ def page_laporan():
         return html_rows, total_val
 
     
-    t1, t2, t3 = st.tabs(["⚖️ Neraca Saldo", "📉 Laba Rugi", "🏛️ Neraca"])
+    t1, t2, t3 = st.tabs(["⚖️ Neraca Saldo", "📉 Laba Rugi", "🏛️ Posisi Keuangan"])
 
    
     with t1:
@@ -1368,40 +1368,44 @@ def page_laporan():
     
     with t2:
         rows_pdp, tot_pdp = get_total_html(['Pendapatan'], True)
-        rows_bbn, tot_bbn = get_total_html(['Beban'], False)
+        rows_bbn, tot_bbn = get_total_html(['Beban', 'HPP'], False) 
+        
+        
         laba = tot_pdp - tot_bbn
         color = "#166534" if laba >= 0 else "#991b1b"
 
+        
         st.markdown(f"""
-        <div style="overflow-x: auto;">
-        <table class="text-table">
-            <thead><tr>
-                <th style="width:70%">Keterangan</th>
-                <th style="text-align:right; width:30%">Nominal (Rp)</th>
-            </tr></thead>
-            <tbody>
-                <tr><td class="bold" style="padding-top:15px;">PENDAPATAN</td><td></td></tr>
-                {rows_pdp if rows_pdp else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
-                <tr style="background:#fafafa;"><td class="bold indent">Total Pendapatan</td><td class="money bold">{tot_pdp:,.0f}</td></tr>
-                
-                <tr><td class="bold" style="padding-top:15px;">BEBAN OPERASIONAL</td><td></td></tr>
-                {rows_bbn if rows_bbn else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
-                <tr style="background:#fafafa;"><td class="bold indent">Total Beban</td><td class="money bold">({tot_bbn:,.0f})</td></tr>
-            </tbody>
-            <tfoot>
-                <tr class="total-row">
-                    <td>LABA BERSIH</td>
-                    <td class="money" style="color:{color};">{laba:,.0f}</td>
-                </tr>
-            </tfoot>
-        </table>
-        </div>
-        """, unsafe_allow_html=True)
+<div style="overflow-x: auto;">
+<table class="text-table">
+<thead>
+<tr>
+<th style="width:70%">Keterangan</th>
+<th style="text-align:right; width:30%">Nominal (Rp)</th>
+</tr>
+</thead>
+<tbody>
+<tr><td class="bold" style="padding-top:15px;">PENDAPATAN</td><td></td></tr>
+{rows_pdp if rows_pdp else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+<tr style="background:#fafafa;"><td class="bold indent">Total Pendapatan</td><td class="money bold">{tot_pdp:,.0f}</td></tr>
+<tr><td class="bold" style="padding-top:15px;">BEBAN OPERASIONAL</td><td></td></tr>
+{rows_bbn if rows_bbn else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+<tr style="background:#fafafa;"><td class="bold indent">Total Beban</td><td class="money bold">({tot_bbn:,.0f})</td></tr>
+</tbody>
+<tfoot>
+<tr class="total-row">
+<td>LABA BERSIH</td>
+<td class="money" style="color:{color};">{laba:,.0f}</td>
+</tr>
+</tfoot>
+</table>
+</div>
+""", unsafe_allow_html=True)
 
    
     with t3:
         _, t_p = get_total_html(['Pendapatan'], True)
-        _, t_b = get_total_html(['Beban'], False)
+        _, t_b = get_total_html(['Beban', 'HPP'], False) 
         profit_now = t_p - t_b
         
         def get_bal_html(tipe, is_asset):
@@ -1435,35 +1439,36 @@ def page_laporan():
         c_left, c_right = st.columns(2)
         
         with c_left:
+           
             st.markdown(f"""
-            <div style="overflow-x: auto;">
-            <table class="text-table">
-                <thead><tr><th colspan="2">ASET (AKTIVA)</th></tr></thead>
-                <tbody>
-                    {r_ast if r_ast else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
-                </tbody>
-                <tfoot><tr class="total-row"><td style="width:60%">TOTAL ASET</td><td class="money" style="width:40%">{t_ast:,.0f}</td></tr></tfoot>
-            </table>
-            </div>
-            """, unsafe_allow_html=True)
+<div style="overflow-x: auto;">
+<table class="text-table">
+<thead><tr><th colspan="2">ASET (AKTIVA)</th></tr></thead>
+<tbody>
+{r_ast if r_ast else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+</tbody>
+<tfoot><tr class="total-row"><td style="width:60%">TOTAL ASET</td><td class="money" style="width:40%">{t_ast:,.0f}</td></tr></tfoot>
+</table>
+</div>
+""", unsafe_allow_html=True)
             
         with c_right:
+            
             st.markdown(f"""
-            <div style="overflow-x: auto;">
-            <table class="text-table">
-                <thead><tr><th colspan="2">KEWAJIBAN & EKUITAS</th></tr></thead>
-                <tbody>
-                    <tr><td class="bold" style="font-size:12px;">KEWAJIBAN</td><td></td></tr>
-                    {r_liab if r_liab else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
-                    
-                    <tr><td class="bold" style="font-size:12px; padding-top:10px;">EKUITAS</td><td></td></tr>
-                    {r_mod}
-                    <tr><td class='indent bold' style="color:#166534;">Laba Tahun Berjalan</td><td class='money bold' style="color:#166534;">{profit_now:,.0f}</td></tr>
-                </tbody>
-                <tfoot><tr class="total-row"><td style="width:60%">TOTAL PASIVA</td><td class="money" style="width:40%">{t_liab + final_equity:,.0f}</td></tr></tfoot>
-            </table>
-            </div>
-            """, unsafe_allow_html=True)
+<div style="overflow-x: auto;">
+<table class="text-table">
+<thead><tr><th colspan="2">KEWAJIBAN & EKUITAS</th></tr></thead>
+<tbody>
+<tr><td class="bold" style="font-size:12px;">KEWAJIBAN</td><td></td></tr>
+{r_liab if r_liab else "<tr><td class='indent'>-</td><td class='money'>-</td></tr>"}
+<tr><td class="bold" style="font-size:12px; padding-top:10px;">EKUITAS</td><td></td></tr>
+{r_mod}
+<tr><td class='indent bold' style="color:#166534;">Laba Tahun Berjalan</td><td class='money bold' style="color:#166534;">{profit_now:,.0f}</td></tr>
+</tbody>
+<tfoot><tr class="total-row"><td style="width:60%">TOTAL PASIVA</td><td class="money" style="width:40%">{t_liab + final_equity:,.0f}</td></tr></tfoot>
+</table>
+</div>
+""", unsafe_allow_html=True)
             
 
 @login_required
@@ -1801,11 +1806,11 @@ def main_app():
                 st.warning(f"⚠️ File '{nama_file_gambar}' belum ada.")
         
         with col_txt:
-            st.markdown('<div class="hero-title">Why Hasna Farm ERP?</div>', unsafe_allow_html=True)
+            st.markdown('<div class="hero-title">Apa itu Hasna Farm ERP?</div>', unsafe_allow_html=True)
             st.markdown("""
             <div class="hero-text">
                 <p>
-                    Hasna Farm merupakan nama peternakan puyuh, lalu sistem ini dibuat untuk memudahkan.
+                    <b>Hasna Farm</b> merupakan nama peternakan puyuh, lalu sistem ini dibuat untuk memudahkan.
                     Sistem ini dirancang khusus untuk memodernisasi pengelolaan <b>Hasna Farm</b>. 
                     Membantu pemilik beralih dari pencatatan manual yang rawan kesalahan ke sistem digital yang terintegrasi.
                     Peternakan puyuh ini berlokasi di Pagersari RT 02/RW 03, Bergas, Kabupaten Semarang, Jawa Tengah.
@@ -1866,6 +1871,7 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
 
 
 
