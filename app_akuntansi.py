@@ -1724,7 +1724,7 @@ def login_page():
 
                             try:
 
-                                db.run_query("INSERT INTO users (username, password, role) VALUES (?,?,?)", (new_u, make_hash(new_p1), 'Manager'))
+                                db.run_query("INSERT INTO users (username, password, role) VALUES (?,?,?)", (new_u, make_hash(new_p1), 'Staff'))
 
                                 st.success("Akun berhasil dibuat! Silakan login.")
 
@@ -1871,6 +1871,7 @@ def main_app():
 if __name__ == "__main__":
     if st.session_state['logged_in']: main_app()
     else: login_page()
+
 
 
 
